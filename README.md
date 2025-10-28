@@ -1,18 +1,21 @@
-## Getting Started
+## 📤 SystemD SDP-25
 
-Welcome to the VS Code Java world. Here is a guideline to help you get started to write Java code in Visual Studio Code.
+Welcome to SystemD repository!
 
-## Folder Structure
+We are currently developing a game inspired by PacMan game.
 
-The workspace contains two folders by default, where:
+Stay tuned!
 
-- `src`: the folder to maintain sources
-- `lib`: the folder to maintain dependencies
+## 👨‍💼👩‍💼 Team Members
+1. Asyraf
+2. Danishi
+3. Adib
+4. Aiman
+5. Afiq
+6. Hana
 
-Meanwhile, the compiled output files will be generated in the `bin` folder by default.
+## 🏢 Jira
+We work on Jira Scrum for the software development agile process
 
-> If you want to customize the folder structure, open `.vscode/settings.json` and update the related settings there.
+[SystemD](https://hanyang-team-fga2z0e8.atlassian.net/jira/software/projects/SCRUM/boards/1/backlog)
 
-## Dependency Management
-
-The `JAVA PROJECTS` view allows you to manage your dependencies. More details can be found [here](https://github.com/microsoft/vscode-java-dependency#manage-dependencies).
