@@ -2,3 +2,4 @@
 .vscode/
 /bin/
 *.class
+.idea/
