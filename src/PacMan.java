@@ -109,7 +109,7 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
         "X    X   X   X    X",
         "X XXXXXX X XXXXXX X",
         "X                 X",
-        "XXXXXXXXXXXXXXXXXXX" 
+        "XXXXXXXXXXXXXXXXXXX"
     };
 
     HashSet<Block> walls;
@@ -196,14 +196,13 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
             }
         }
 
-        
+
     }
 
     public void paintComponent(Graphics g) {
         super.paintComponent(g);
         draw(g);
     }
-}
 
     public void draw(Graphics g) {
         g.drawImage(pacman.image, pacman.x, pacman.y, pacman.width, pacman.height, null);
@@ -268,8 +267,21 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
                 }
             }
         }
+        //check food collision
+        Block foodEaten = null;
+        for (Block food : foods) {
+            if (collision(pacman, food)) {
+                foodEaten = food;
+                score += 10;
+            }
+        }
+        foods.remove(foodEaten);
 
-
+        if (foods.isEmpty()) {
+            loadMap();
+            resetPositions();
+        }
+    }
     public boolean collision(Block a, Block b) {
         return  a.x < b.x + b.width &&
                 a.x + a.width > b.x &&
