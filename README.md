@@ -7,12 +7,19 @@ We are currently developing a game inspired by PacMan game.
 Stay tuned!
 
 ## 👨‍💼👩‍💼 Team Members
-1. Asyraf
-2. Danishi
-3. Adib
-4. Aiman
-5. Afiq
-6. Hana
+1. Asyraf (Scrum Master)
+2. Danish (Secretary)
+3. Adib (Developer)
+4. Aiman (Developer)
+5. Afiq (Developer)
+6. Hana (Developer)
+
+### Roles details:
+Scrum Master --> Serves as a facilitator, coaching the team, and removing obstacles that impede progress. Maintainer
+
+Secretary --> Organize meeting schedule, time, and place. Write documentations like reports and `Sprint Retrospective`
+
+Developer --> Develop the game for every sprint
 
 ## 🏢 Jira
 We work on Jira Scrum for the software development agile process
