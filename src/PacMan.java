@@ -3,6 +3,7 @@ import java.awt.event.*;
 import java.util.HashSet;
 import java.util.Random;
 import javax.swing.*;
+import java.awt.image.BufferedImage;
 
 public class PacMan extends JPanel implements ActionListener, KeyListener {
     class Block {
@@ -72,9 +73,12 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
     private int rowCount = 21;
     private int columnCount = 19;
     private int tileSize = 32;
+    private int scoreboardHeight = tileSize;
     private int boardWidth = columnCount * tileSize;
     private int boardHeight = rowCount * tileSize;
 
+
+    private Image backgroundImage;
     private Image wallImage;
     private Image blueGhostImage;
     private Image orangeGhostImage;
@@ -131,6 +135,7 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
         setFocusable(true);
 
         //load images
+        backgroundImage = new ImageIcon(getClass().getResource("/background.png")).getImage();
         wallImage = new ImageIcon(getClass().getResource("/wall.png")).getImage();
         blueGhostImage = new ImageIcon(getClass().getResource("/blueGhost.png")).getImage();
         orangeGhostImage = new ImageIcon(getClass().getResource("/orangeGhost.png")).getImage();
@@ -158,6 +163,8 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
         foods = new HashSet<Block>();
         ghosts = new HashSet<Block>();
 
+        boolean[][] wallMatrix = new boolean[rowCount][columnCount];
+
         for (int r = 0 ; r < rowCount ; r++) {
             for (int c = 0 ; c < columnCount ; c++) {
                 String row = tileMap[r];
@@ -167,8 +174,7 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
                 int y = r*tileSize;
 
                 if (tileMapChar == 'X') {
-                    Block wall = new Block(wallImage, x, y, tileSize, tileSize);
-                    walls.add(wall);
+                    wallMatrix[r][c] = true;
                 }
                 else if (tileMapChar == 'b') {
                     Block ghost = new Block(blueGhostImage, x, y, tileSize, tileSize);
@@ -195,8 +201,19 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
                 }
             }
         }
+        for (int r = 0 ; r < rowCount ; r++) {
+            for (int c = 0 ; c < columnCount ; c++) {
+                if (!wallMatrix[r][c]) {
+                    continue;
+                }
 
-
+                int x = c*tileSize;
+                int y = r*tileSize;
+                Image connectedWallImage = createWallTexture(wallMatrix, r, c);
+                Block wall = new Block(connectedWallImage, x, y, tileSize, tileSize);
+                walls.add(wall);
+            }
+        }
     }
 
     public void paintComponent(Graphics g) {
@@ -205,18 +222,19 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
     }
 
     public void draw(Graphics g) {
-        g.drawImage(pacman.image, pacman.x, pacman.y, pacman.width, pacman.height, null);
 
-        for (Block ghost : ghosts){
-            g.drawImage(ghost.image, ghost.x, ghost.y, ghost.width, ghost.height, null);
-        }
         for (Block wall : walls) {
             g.drawImage(wall.image, wall.x, wall.y, wall.width, wall.height, null);
         }
-        g.setColor(Color.WHITE);
+        g.setColor(Color.BLUE);
         for (Block food : foods) {
             g.fillRect(food.x, food.y, food.width, food.height);
         }
+        for (Block ghost : ghosts){
+            g.drawImage(ghost.image, ghost.x, ghost.y, ghost.width, ghost.height, null);
+        }
+
+        g.drawImage(pacman.image, pacman.x, pacman.y, pacman.width, pacman.height, null);
 
         //for score
 
@@ -351,5 +369,87 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
         else if (pacman.direction == 'R') {
             pacman.image = pacmanRightImage;
         }
+    }
+    private Image createWallTexture(boolean[][] wallMatrix, int row, int column) {
+        BufferedImage texture = new BufferedImage(tileSize, tileSize, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D graphics2D = texture.createGraphics();
+        graphics2D.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+        Color baseColor = new Color(18, 9, 38);
+        Color outlineColor = new Color(200, 00, 00);
+        Color glowColor = new Color(192, 160, 255, 180);
+
+        if (wallImage != null) {
+            graphics2D.drawImage(wallImage, 0, 0, tileSize, tileSize, null);
+        }
+
+        graphics2D.setColor(baseColor);
+        graphics2D.fillRect(0, 0, tileSize, tileSize);
+
+        int borderThickness = Math.max(2, tileSize / 8);
+        int glowThickness = Math.max(1, borderThickness / 2);
+        int cornerDiameter = borderThickness * 2;
+
+        boolean hasTop = row > 0 && wallMatrix[row - 1][column];
+        boolean hasBottom = row < rowCount - 1 && wallMatrix[row + 1][column];
+        boolean hasLeft = column > 0 && wallMatrix[row][column - 1];
+        boolean hasRight = column < columnCount - 1 && wallMatrix[row][column + 1];
+
+        // draw base fill to soften interior seams
+        graphics2D.setColor(new Color(36, 18, 72));
+        int innerWidth = Math.max(0, tileSize - borderThickness * 2);
+        int innerHeight = Math.max(0, tileSize - borderThickness * 2);
+        if (innerWidth > 0 && innerHeight > 0) {
+            graphics2D.fillRect(borderThickness, borderThickness, innerWidth, innerHeight);
+        }
+
+        graphics2D.setColor(outlineColor);
+        if (!hasTop) {
+            graphics2D.fillRect(0, 0, tileSize, borderThickness);
+        }
+        if (!hasBottom) {
+            graphics2D.fillRect(0, tileSize - borderThickness, tileSize, borderThickness);
+        }
+        if (!hasLeft) {
+            graphics2D.fillRect(0, 0, borderThickness, tileSize);
+        }
+        if (!hasRight) {
+            graphics2D.fillRect(tileSize - borderThickness, 0, borderThickness, tileSize);
+        }
+
+        // add glow that bleeds slightly into the pathways for visibility
+        graphics2D.setColor(glowColor);
+        int horizontalGlowWidth = Math.max(0, tileSize - borderThickness * 2);
+        int verticalGlowHeight = Math.max(0, tileSize - borderThickness * 2);
+
+        if (!hasTop && horizontalGlowWidth > 0) {
+            graphics2D.fillRect(borderThickness, borderThickness - glowThickness, horizontalGlowWidth, glowThickness);
+        }
+        if (!hasBottom && horizontalGlowWidth > 0) {
+            graphics2D.fillRect(borderThickness, tileSize - borderThickness, horizontalGlowWidth, glowThickness);
+        }
+        if (!hasLeft && verticalGlowHeight > 0) {
+            graphics2D.fillRect(borderThickness - glowThickness, borderThickness, glowThickness, verticalGlowHeight);
+        }
+        if (!hasRight && verticalGlowHeight > 0) {
+            graphics2D.fillRect(tileSize - borderThickness, borderThickness, glowThickness, verticalGlowHeight);
+        }
+
+        graphics2D.setColor(outlineColor);
+        if (!hasTop && !hasLeft) {
+            graphics2D.fillArc(0, 0, cornerDiameter, cornerDiameter, 180, 90);
+        }
+        if (!hasTop && !hasRight) {
+            graphics2D.fillArc(tileSize - cornerDiameter, 0, cornerDiameter, cornerDiameter, 270, 90);
+        }
+        if (!hasBottom && !hasLeft) {
+            graphics2D.fillArc(0, tileSize - cornerDiameter, cornerDiameter, cornerDiameter, 90, 90);
+        }
+        if (!hasBottom && !hasRight) {
+            graphics2D.fillArc(tileSize - cornerDiameter, tileSize - cornerDiameter, cornerDiameter, cornerDiameter, 0, 90);
+        }
+
+        graphics2D.dispose();
+        return texture;
     }
 }
