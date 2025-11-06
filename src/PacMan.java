@@ -73,9 +73,9 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
     private int rowCount = 21;
     private int columnCount = 19;
     private int tileSize = 32;
-    private int scoreboardHeight = tileSize;
+    private int scoreboardHeight = tileSize * 2;
     private int boardWidth = columnCount * tileSize;
-    private int boardHeight = rowCount * tileSize;
+    private int boardHeight = rowCount * tileSize + scoreboardHeight;
 
 
     private Image backgroundImage;
@@ -171,7 +171,7 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
                 char tileMapChar = row.charAt(c);
 
                 int x = c*tileSize;
-                int y = r*tileSize;
+                int y = scoreboardHeight + r*tileSize;
 
                 if (tileMapChar == 'X') {
                     wallMatrix[r][c] = true;
@@ -208,7 +208,7 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
                 }
 
                 int x = c*tileSize;
-                int y = r*tileSize;
+                int y = scoreboardHeight + r*tileSize;
                 Image connectedWallImage = createWallTexture(wallMatrix, r, c);
                 Block wall = new Block(connectedWallImage, x, y, tileSize, tileSize);
                 walls.add(wall);
@@ -223,28 +223,129 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
 
     public void draw(Graphics g) {
 
+        Graphics2D graphics2D = (Graphics2D) g.create();
+        graphics2D.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+        drawScoreboard(graphics2D);
+
         for (Block wall : walls) {
-            g.drawImage(wall.image, wall.x, wall.y, wall.width, wall.height, null);
+            graphics2D.drawImage(wall.image, wall.x, wall.y, wall.width, wall.height, null);
         }
-        g.setColor(Color.BLUE);
+        graphics2D.setColor(new Color(120, 180, 255));
         for (Block food : foods) {
-            g.fillRect(food.x, food.y, food.width, food.height);
+            graphics2D.fillRoundRect(food.x, food.y, food.width, food.height, food.width, food.height);
         }
         for (Block ghost : ghosts){
-            g.drawImage(ghost.image, ghost.x, ghost.y, ghost.width, ghost.height, null);
+            graphics2D.drawImage(ghost.image, ghost.x, ghost.y, ghost.width, ghost.height, null);
         }
-
-        g.drawImage(pacman.image, pacman.x, pacman.y, pacman.width, pacman.height, null);
 
         //for score
+        graphics2D.drawImage(pacman.image, pacman.x, pacman.y, pacman.width, pacman.height, null);
 
-        g.setFont(new Font("Arial", Font.PLAIN, 20));
+
         if (gameOver) {
-            g.drawString("Game Over: " + String.valueOf(score), tileSize/2, tileSize/2);
+            drawGameOverOverlay(graphics2D);
         }
-        else{
-            g.drawString("x" + String.valueOf(lives) + " Score: " + String.valueOf(score), tileSize/2, tileSize/2);
+
+        graphics2D.dispose();
+    }
+
+    private void drawScoreboard(Graphics2D graphics2D) {
+        int padding = tileSize / 3;
+        int scoreboardX = padding;
+        int scoreboardY = padding / 2;
+        int scoreboardWidth = boardWidth - padding * 2;
+        int scoreboardBodyHeight = scoreboardHeight - padding;
+
+        graphics2D.setColor(new Color(10, 5, 30, 230));
+        graphics2D.fillRect(0, 0, boardWidth, scoreboardHeight);
+
+        GradientPaint backgroundPaint = new GradientPaint(
+                scoreboardX,
+                scoreboardY,
+                new Color(20, 10, 60, 220),
+                scoreboardX,
+                scoreboardY + scoreboardBodyHeight,
+                new Color(60, 30, 120, 200)
+        );
+        graphics2D.setPaint(backgroundPaint);
+        graphics2D.fillRoundRect(scoreboardX, scoreboardY, scoreboardWidth, scoreboardBodyHeight, tileSize, tileSize);
+
+        graphics2D.setStroke(new BasicStroke(Math.max(2, tileSize / 12f)));
+        graphics2D.setColor(new Color(150, 130, 255, 220));
+        graphics2D.drawRoundRect(scoreboardX, scoreboardY, scoreboardWidth, scoreboardBodyHeight, tileSize, tileSize);
+
+        Font scoreFont = new Font("SansSerif", Font.BOLD, Math.max(18, scoreboardBodyHeight / 2));
+        graphics2D.setFont(scoreFont);
+        FontMetrics metrics = graphics2D.getFontMetrics();
+        int textBaseline = scoreboardY + (scoreboardBodyHeight + metrics.getAscent() - metrics.getDescent()) / 2;
+
+        String scoreLabel = String.format("SCORE %04d", Math.max(0, score));
+        graphics2D.setColor(Color.WHITE);
+        graphics2D.drawString(scoreLabel, scoreboardX + padding, textBaseline);
+
+        String livesLabel = "LIVES";
+        Font livesFont = scoreFont.deriveFont(Font.PLAIN, scoreFont.getSize() * 0.85f);
+        FontMetrics livesMetrics = graphics2D.getFontMetrics(livesFont);
+        graphics2D.setFont(livesFont);
+        int lifeIconSize = scoreboardBodyHeight - padding * 2;
+        lifeIconSize = Math.max(tileSize, lifeIconSize);
+        int lifeSpacing = tileSize / 4;
+        int livesLabelWidth = livesMetrics.stringWidth(livesLabel);
+        int livesIconsWidth = lives * lifeIconSize + Math.max(0, lives - 1) * lifeSpacing;
+        int totalLivesWidth = livesLabelWidth + lifeSpacing + livesIconsWidth;
+        int livesStartX = scoreboardX + (scoreboardWidth - totalLivesWidth) / 2;
+
+        graphics2D.setColor(new Color(210, 200, 255));
+        graphics2D.drawString(livesLabel, livesStartX, textBaseline);
+
+        int iconsStartX = livesStartX + livesLabelWidth + lifeSpacing;
+        int iconY = scoreboardY + (scoreboardBodyHeight - lifeIconSize) / 2;
+        for (int i = 0; i < lives; i++) {
+            graphics2D.drawImage(pacmanRightImage, iconsStartX + i * (lifeIconSize + lifeSpacing), iconY, lifeIconSize, lifeIconSize, null);
         }
+
+        String multiplierLabel = "x" + lives;
+        int multiplierX = iconsStartX + livesIconsWidth + lifeSpacing / 2;
+        graphics2D.setFont(scoreFont.deriveFont(Font.BOLD, scoreFont.getSize() * 0.8f));
+        graphics2D.setColor(new Color(255, 230, 120));
+        graphics2D.drawString(multiplierLabel, multiplierX, textBaseline);
+    }
+
+    private void drawGameOverOverlay(Graphics2D graphics2D) {
+        int overlayWidth = boardWidth - tileSize * 4;
+        int overlayHeight = tileSize * 6;
+        int overlayX = (boardWidth - overlayWidth) / 2;
+        int overlayY = scoreboardHeight + (rowCount * tileSize - overlayHeight) / 2;
+
+        graphics2D.setColor(new Color(0, 0, 0, 180));
+        graphics2D.fillRoundRect(overlayX, overlayY, overlayWidth, overlayHeight, tileSize, tileSize);
+
+        graphics2D.setColor(new Color(255, 220, 0));
+        graphics2D.setStroke(new BasicStroke(4f));
+        graphics2D.drawRoundRect(overlayX, overlayY, overlayWidth, overlayHeight, tileSize, tileSize);
+
+        Font titleFont = new Font("SansSerif", Font.BOLD, tileSize * 2);
+        graphics2D.setFont(titleFont);
+        FontMetrics titleMetrics = graphics2D.getFontMetrics();
+        String title = "GAME OVER";
+        int titleX = overlayX + (overlayWidth - titleMetrics.stringWidth(title)) / 2;
+        int titleY = overlayY + titleMetrics.getAscent() + tileSize / 2;
+        graphics2D.drawString(title, titleX, titleY);
+
+        Font infoFont = new Font("SansSerif", Font.PLAIN, tileSize);
+        graphics2D.setFont(infoFont);
+        FontMetrics infoMetrics = graphics2D.getFontMetrics();
+        String scoreSummary = "Final Score: " + score;
+        int scoreX = overlayX + (overlayWidth - infoMetrics.stringWidth(scoreSummary)) / 2;
+        int scoreY = titleY + tileSize * 2;
+        graphics2D.setColor(Color.WHITE);
+        graphics2D.drawString(scoreSummary, scoreX, scoreY);
+
+        String restartHint = "Press any key to restart";
+        int hintX = overlayX + (overlayWidth - infoMetrics.stringWidth(restartHint)) / 2;
+        int hintY = scoreY + tileSize * 3 / 2;
+        graphics2D.drawString(restartHint, hintX, hintY);
     }
 
     public void move() {
@@ -271,7 +372,7 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
                 resetPositions();
             }
 
-            if (ghost.y == tileSize*9 && ghost.direction != 'U' && ghost.direction != 'D') {
+            if (ghost.y == scoreboardHeight + tileSize*9 && ghost.direction != 'U' && ghost.direction != 'D') {
                 ghost.updateDirection('U');
             }
             ghost.x += ghost.velocityX;
