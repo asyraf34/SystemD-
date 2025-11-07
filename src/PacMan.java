@@ -29,8 +29,10 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
             this.startY = y;
         }
 
-        void updateDirection(char direction) {
+        boolean updateDirection(char direction) {
             char prevDirection = this.direction;
+            int prevX = this.x;
+            int prevY = this.y;
             this.direction = direction;
             updateVelocity();
             this.x += this.velocityX;
@@ -41,8 +43,10 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
                     this.y -= this.velocityY;
                     this.direction = prevDirection;
                     updateVelocity();
+                    return false;
                 }
             }
+            return this.x != prevX || this.y != prevY;
         }
 
         void updateVelocity() {
@@ -135,6 +139,7 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
     private static final String BACKGROUND_MUSIC = "audio/background.wav";
     private static final String FOOD_SOUND = "audio/food.wav";
     private static final String LIFE_LOST_SOUND = "audio/life_lost.wav";
+    private static final String MOVE_SOUND = "audio/move.wav";
     private static final String FOOD_IMAGE_RESOURCE = "/goldFood.png";
 
     PacMan() {
@@ -383,17 +388,22 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
             gameLoop.start();
         }
         // System.out.println("KeyEvent: " + e.getKeyCode());
+        boolean moved = false;
         if (e.getKeyCode() == KeyEvent.VK_UP) {
-            pacman.updateDirection('U');
+            moved = pacman.updateDirection('U');
         }
         else if (e.getKeyCode() == KeyEvent.VK_DOWN) {
-            pacman.updateDirection('D');
+            moved = pacman.updateDirection('D');
         }
         else if (e.getKeyCode() == KeyEvent.VK_LEFT) {
-            pacman.updateDirection('L');
+            moved = pacman.updateDirection('L');
         }
         else if (e.getKeyCode() == KeyEvent.VK_RIGHT) {
-            pacman.updateDirection('R');
+            moved = pacman.updateDirection('R');
+        }
+
+        if (moved && soundManager != null) {
+            soundManager.playEffect(MOVE_SOUND);
         }
 
         if (pacman.direction == 'U') {
@@ -453,7 +463,7 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
             graphics2D.fillRoundRect(borderThickness, borderThickness, innerWidth, innerHeight, cornerDiameter, cornerDiameter);
             graphics2D.setComposite(AlphaComposite.SrcOver);
 
-            graphics2D.setColor(new Color(54, 21, 110));
+            graphics2D.setColor(new Color(255, 217, 89));
             graphics2D.setStroke(new BasicStroke(Math.max(1, tileSize / 32f)));
             graphics2D.drawRoundRect(borderThickness, borderThickness, innerWidth, innerHeight, cornerDiameter, cornerDiameter);
 
