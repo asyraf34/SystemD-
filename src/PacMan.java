@@ -89,6 +89,9 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
     private Image pacmanDownImage;
     private Image pacmanLeftImage;
     private Image pacmanRightImage;
+    private Image foodImage;
+    private int foodWidth;
+    private int foodHeight;
 
     //X = wall, O = skip, P = pac man, ' ' = food
     //Ghosts: b = blue, o = orange, p = pink, r = red
@@ -101,9 +104,9 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
         "X    X       X    X",
         "XXXX XXXX XXXX XXXX",
         "OOOX X       X XOOO",
-        "XXXX X XXrXX X XXXX",
+        "XXXX X XXrXX X  XXX",
         "O       bpo       O",
-        "XXXX X XXXXX X XXXX",
+        "XXXX X XXXXX   XXXX",
         "OOOX X       X XOOO",
         "XXXX X XXXXX X XXXX",
         "X        X        X",
@@ -132,6 +135,7 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
     private static final String BACKGROUND_MUSIC = "audio/background.wav";
     private static final String FOOD_SOUND = "audio/food.wav";
     private static final String LIFE_LOST_SOUND = "audio/life_lost.wav";
+    private static final String FOOD_IMAGE_RESOURCE = "/goldFood.png";
 
     PacMan() {
         setPreferredSize(new Dimension(boardWidth, boardHeight));
@@ -151,6 +155,24 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
         pacmanDownImage = new ImageIcon(getClass().getResource("/pacmanDown.png")).getImage();
         pacmanLeftImage = new ImageIcon(getClass().getResource("/pacmanLeft.png")).getImage();
         pacmanRightImage = new ImageIcon(getClass().getResource("/pacmanRight.png")).getImage();
+
+        ImageIcon foodIcon = new ImageIcon(getClass().getResource(FOOD_IMAGE_RESOURCE));
+        foodImage = foodIcon.getImage();
+        foodWidth = foodIcon.getIconWidth();
+        foodHeight = foodIcon.getIconHeight();
+
+        double maxFoodCoverage = 0.6;
+        int maxFoodWidth = (int)Math.round(tileSize * maxFoodCoverage);
+        int maxFoodHeight = (int)Math.round(tileSize * maxFoodCoverage);
+        double widthScale = (double)maxFoodWidth / foodWidth;
+        double heightScale = (double)maxFoodHeight / foodHeight;
+        double scale = Math.min(1.0, Math.min(widthScale, heightScale));
+        if (scale < 1.0) {
+            foodWidth = Math.max(1, (int)Math.round(foodWidth * scale));
+            foodHeight = Math.max(1, (int)Math.round(foodHeight * scale));
+            foodImage = foodImage.getScaledInstance(foodWidth, foodHeight, Image.SCALE_SMOOTH);
+        }
+
 
         loadMap();
         for (Block ghost : ghosts) {
@@ -205,7 +227,9 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
                     pacman = new Block(pacmanRightImage, x, y, tileSize, tileSize);
                 }
                 else if (tileMapChar == ' ') {
-                    Block food = new Block(null, x + 14, y + 14, 4, 4);
+                    int foodX = x + (tileSize - foodWidth) / 2;
+                    int foodY = y + (tileSize - foodHeight) / 2;
+                    Block food = new Block(foodImage, foodX, foodY, foodWidth, foodHeight);
                     foods.add(food);
                 }
             }
@@ -235,9 +259,9 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
         for (Block wall : walls) {
             g.drawImage(wall.image, wall.x, wall.y, wall.width, wall.height, null);
         }
-        g.setColor(Color.BLUE);
+
         for (Block food : foods) {
-            g.fillRect(food.x, food.y, food.width, food.height);
+            g.drawImage(food.image, food.x, food.y, food.width, food.height, null);
         }
         for (Block ghost : ghosts){
             g.drawImage(ghost.image, ghost.x, ghost.y, ghost.width, ghost.height, null);
@@ -390,13 +414,14 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
         Graphics2D graphics2D = texture.createGraphics();
         graphics2D.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
-        Color baseShadow = new Color(20, 6, 52);
-        Color baseLight = new Color(66, 27, 124);
-        Color innerHighlight = new Color(90, 45, 168);
-        Color innerShadow = new Color(34, 12, 72);
-        Color accentBright = new Color(219, 137, 255);
-        Color accentDark = new Color(118, 46, 173);
-        Color accentHighlight = new Color(243, 206, 255);
+        Color baseShadow = new Color(70, 50, 20);        // deep warm brown shadow
+        Color baseLight = new Color(235, 190, 90);       // main soft yellow light
+        Color innerHighlight = new Color(255, 220, 130); // bright lamp glow tone
+        Color innerShadow = new Color(120, 90, 40);      // muted golden-brown shadow
+        Color accentBright = new Color(255, 210, 100);   // accent light highlight
+        Color accentDark = new Color(180, 130, 50);      // rich amber tone
+        Color accentHighlight = new Color(255, 235, 180); // warm sunlight reflection
+
 
         if (wallImage != null) {
             graphics2D.drawImage(wallImage, 0, 0, tileSize, tileSize, null);
@@ -433,7 +458,7 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
             graphics2D.drawRoundRect(borderThickness, borderThickness, innerWidth, innerHeight, cornerDiameter, cornerDiameter);
 
             int accentLineWidth = Math.max(1, tileSize / 18);
-            graphics2D.setColor(new Color(72, 28, 150));
+            graphics2D.setColor(new Color(1, 8, 1));
             graphics2D.fillRect(tileSize / 3 - accentLineWidth / 2, borderThickness + accentThickness, accentLineWidth, innerHeight - accentThickness * 2);
             graphics2D.fillRect(tileSize * 2 / 3 - accentLineWidth / 2, borderThickness + accentThickness, accentLineWidth, innerHeight - accentThickness * 2);
         }
