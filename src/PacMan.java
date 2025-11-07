@@ -390,19 +390,24 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
         Graphics2D graphics2D = texture.createGraphics();
         graphics2D.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
-        Color baseColor = new Color(18, 9, 38);
-        Color outlineColor = new Color(200, 00, 00);
-        Color glowColor = new Color(100, 100, 70);
+        Color baseShadow = new Color(20, 6, 52);
+        Color baseLight = new Color(66, 27, 124);
+        Color innerHighlight = new Color(90, 45, 168);
+        Color innerShadow = new Color(34, 12, 72);
+        Color accentBright = new Color(219, 137, 255);
+        Color accentDark = new Color(118, 46, 173);
+        Color accentHighlight = new Color(243, 206, 255);
 
         if (wallImage != null) {
             graphics2D.drawImage(wallImage, 0, 0, tileSize, tileSize, null);
         }
 
-        graphics2D.setColor(baseColor);
+        GradientPaint basePaint = new GradientPaint(0, 0, baseShadow, tileSize, tileSize, baseLight);
+        graphics2D.setPaint(basePaint);
         graphics2D.fillRect(0, 0, tileSize, tileSize);
 
-        int borderThickness = Math.max(2, tileSize / 8);
-        int glowThickness = Math.max(1, borderThickness / 2);
+        int borderThickness = Math.max(3, tileSize / 9);
+        int accentThickness = Math.max(3, tileSize / 8);
         int cornerDiameter = borderThickness * 2;
 
         boolean hasTop = row > 0 && wallMatrix[row - 1][column];
@@ -410,59 +415,107 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
         boolean hasLeft = column > 0 && wallMatrix[row][column - 1];
         boolean hasRight = column < columnCount - 1 && wallMatrix[row][column + 1];
 
-        // draw base fill to soften interior seams
-        graphics2D.setColor(new Color(36, 18, 72));
+
         int innerWidth = Math.max(0, tileSize - borderThickness * 2);
         int innerHeight = Math.max(0, tileSize - borderThickness * 2);
         if (innerWidth > 0 && innerHeight > 0) {
-            graphics2D.fillRect(borderThickness, borderThickness, innerWidth, innerHeight);
+            GradientPaint innerPaint = new GradientPaint(0, borderThickness, innerShadow, 0, tileSize - borderThickness, innerHighlight);
+            graphics2D.setPaint(innerPaint);
+            graphics2D.fillRoundRect(borderThickness, borderThickness, innerWidth, innerHeight, cornerDiameter, cornerDiameter);
+
+            graphics2D.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.35f));
+            graphics2D.setPaint(new GradientPaint(0, tileSize / 4f, accentBright, 0, tileSize * 3 / 4f, innerShadow));
+            graphics2D.fillRoundRect(borderThickness, borderThickness, innerWidth, innerHeight, cornerDiameter, cornerDiameter);
+            graphics2D.setComposite(AlphaComposite.SrcOver);
+
+            graphics2D.setColor(new Color(54, 21, 110));
+            graphics2D.setStroke(new BasicStroke(Math.max(1, tileSize / 32f)));
+            graphics2D.drawRoundRect(borderThickness, borderThickness, innerWidth, innerHeight, cornerDiameter, cornerDiameter);
+
+            int accentLineWidth = Math.max(1, tileSize / 18);
+            graphics2D.setColor(new Color(72, 28, 150));
+            graphics2D.fillRect(tileSize / 3 - accentLineWidth / 2, borderThickness + accentThickness, accentLineWidth, innerHeight - accentThickness * 2);
+            graphics2D.fillRect(tileSize * 2 / 3 - accentLineWidth / 2, borderThickness + accentThickness, accentLineWidth, innerHeight - accentThickness * 2);
         }
 
-        graphics2D.setColor(outlineColor);
+        Stroke originalStroke = graphics2D.getStroke();
+        graphics2D.setStroke(new BasicStroke(Math.max(1f, accentThickness / 3f)));
+
         if (!hasTop) {
-            graphics2D.fillRect(0, 0, tileSize, borderThickness);
+            graphics2D.setPaint(new GradientPaint(0, 0, accentBright, 0, accentThickness, accentDark));
+            graphics2D.fillRect(0, 0, tileSize, accentThickness);
+
+            int segmentWidth = Math.max(3, tileSize / 6);
+            int gap = Math.max(2, segmentWidth / 2);
+            int yOffset = Math.max(1, accentThickness / 3);
+            for (int x = 0; x < tileSize; x += segmentWidth + gap) {
+                int width = Math.min(segmentWidth, tileSize - x);
+                graphics2D.setColor(accentHighlight);
+                graphics2D.fillRect(x, yOffset, width, Math.max(1, accentThickness / 3));
+                graphics2D.setColor(accentDark);
+                graphics2D.drawLine(x, accentThickness - 1, x + width, accentThickness - 1);
+            }
+        } else {
+            graphics2D.setColor(new Color(44, 16, 94));
+            graphics2D.fillRect(0, 0, tileSize, Math.max(2, accentThickness / 3));
         }
         if (!hasBottom) {
-            graphics2D.fillRect(0, tileSize - borderThickness, tileSize, borderThickness);
+            graphics2D.setPaint(new GradientPaint(0, tileSize - accentThickness, accentDark, 0, tileSize, accentBright));
+            graphics2D.fillRect(0, tileSize - accentThickness, tileSize, accentThickness);
+
+            int segmentWidth = Math.max(3, tileSize / 6);
+            int gap = Math.max(2, segmentWidth / 2);
+            int yOffset = tileSize - accentThickness + Math.max(1, accentThickness / 4);
+            for (int x = 0; x < tileSize; x += segmentWidth + gap) {
+                int width = Math.min(segmentWidth, tileSize - x);
+                graphics2D.setColor(accentHighlight);
+                graphics2D.fillRect(x, yOffset, width, Math.max(1, accentThickness / 3));
+                graphics2D.setColor(accentDark.darker());
+                graphics2D.drawLine(x, tileSize - 1, x + width, tileSize - 1);
+            }
+        } else {
+            graphics2D.setColor(new Color(44, 16, 94));
+            graphics2D.fillRect(0, tileSize - Math.max(2, accentThickness / 3), tileSize, Math.max(2, accentThickness / 3));
         }
         if (!hasLeft) {
-            graphics2D.fillRect(0, 0, borderThickness, tileSize);
+            graphics2D.setPaint(new GradientPaint(0, 0, accentBright, accentThickness, 0, accentDark));
+            graphics2D.fillRect(0, 0, accentThickness, tileSize);
+
+            int segmentHeight = Math.max(3, tileSize / 6);
+            int gap = Math.max(2, segmentHeight / 2);
+            int xOffset = Math.max(1, accentThickness / 3);
+            for (int y = 0; y < tileSize; y += segmentHeight + gap) {
+                int height = Math.min(segmentHeight, tileSize - y);
+                graphics2D.setColor(accentHighlight);
+                graphics2D.fillRect(xOffset, y, Math.max(1, accentThickness / 3), height);
+                graphics2D.setColor(accentDark);
+                graphics2D.drawLine(accentThickness - 1, y, accentThickness - 1, y + height);
+            }
+        } else {
+            graphics2D.setColor(new Color(44, 16, 94));
+            graphics2D.fillRect(0, 0, Math.max(2, accentThickness / 3), tileSize);
         }
+
         if (!hasRight) {
-            graphics2D.fillRect(tileSize - borderThickness, 0, borderThickness, tileSize);
+            graphics2D.setPaint(new GradientPaint(tileSize - accentThickness, 0, accentDark, tileSize, 0, accentBright));
+            graphics2D.fillRect(tileSize - accentThickness, 0, accentThickness, tileSize);
+
+            int segmentHeight = Math.max(3, tileSize / 6);
+            int gap = Math.max(2, segmentHeight / 2);
+            int xOffset = tileSize - accentThickness + Math.max(1, accentThickness / 4);
+            for (int y = 0; y < tileSize; y += segmentHeight + gap) {
+                int height = Math.min(segmentHeight, tileSize - y);
+                graphics2D.setColor(accentHighlight);
+                graphics2D.fillRect(xOffset, y, Math.max(1, accentThickness / 3), height);
+                graphics2D.setColor(accentDark.darker());
+                graphics2D.drawLine(tileSize - 1, y, tileSize - 1, y + height);
+            }
+        } else {
+            graphics2D.setColor(new Color(44, 16, 94));
+            graphics2D.fillRect(tileSize - Math.max(2, accentThickness / 3), 0, Math.max(2, accentThickness / 3), tileSize);
         }
 
-        // add glow that bleeds slightly into the pathways for visibility
-        graphics2D.setColor(glowColor);
-        int horizontalGlowWidth = Math.max(0, tileSize - borderThickness * 2);
-        int verticalGlowHeight = Math.max(0, tileSize - borderThickness * 2);
-
-        if (!hasTop && horizontalGlowWidth > 0) {
-            graphics2D.fillRect(borderThickness, borderThickness - glowThickness, horizontalGlowWidth, glowThickness);
-        }
-        if (!hasBottom && horizontalGlowWidth > 0) {
-            graphics2D.fillRect(borderThickness, tileSize - borderThickness, horizontalGlowWidth, glowThickness);
-        }
-        if (!hasLeft && verticalGlowHeight > 0) {
-            graphics2D.fillRect(borderThickness - glowThickness, borderThickness, glowThickness, verticalGlowHeight);
-        }
-        if (!hasRight && verticalGlowHeight > 0) {
-            graphics2D.fillRect(tileSize - borderThickness, borderThickness, glowThickness, verticalGlowHeight);
-        }
-
-        graphics2D.setColor(outlineColor);
-        if (!hasTop && !hasLeft) {
-            graphics2D.fillArc(0, 0, cornerDiameter, cornerDiameter, 180, 90);
-        }
-        if (!hasTop && !hasRight) {
-            graphics2D.fillArc(tileSize - cornerDiameter, 0, cornerDiameter, cornerDiameter, 270, 90);
-        }
-        if (!hasBottom && !hasLeft) {
-            graphics2D.fillArc(0, tileSize - cornerDiameter, cornerDiameter, cornerDiameter, 90, 90);
-        }
-        if (!hasBottom && !hasRight) {
-            graphics2D.fillArc(tileSize - cornerDiameter, tileSize - cornerDiameter, cornerDiameter, cornerDiameter, 0, 90);
-        }
+        graphics2D.setStroke(originalStroke);
 
         graphics2D.dispose();
         return texture;
