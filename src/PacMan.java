@@ -73,7 +73,7 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
     private int rowCount = 21;
     private int columnCount = 19;
     private int tileSize = 32;
-    private int scoreboardHeight = tileSize;
+
     private int boardWidth = columnCount * tileSize;
     private int boardHeight = rowCount * tileSize;
 
@@ -128,9 +128,14 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
     int lives = 3;
     boolean gameOver = false;
 
+    private SoundManager soundManager;
+    private static final String BACKGROUND_MUSIC = "audio/background.wav";
+    private static final String FOOD_SOUND = "audio/food.wav";
+    private static final String LIFE_LOST_SOUND = "audio/life_lost.wav";
+
     PacMan() {
         setPreferredSize(new Dimension(boardWidth, boardHeight));
-        setBackground(Color.BLACK);
+        setBackground(Color.LIGHT_GRAY);
         addKeyListener(this);
         setFocusable(true);
 
@@ -152,6 +157,10 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
             char newDirection = directions[random.nextInt(4)];
             ghost.updateDirection(newDirection);
         }
+        //how long it takes to start timer, milliseconds gone between frames
+        soundManager = new SoundManager();
+        soundManager.playBackgroundLoop(BACKGROUND_MUSIC);
+
         //how long it takes to start timer, milliseconds gone between frames
         gameLoop = new Timer(50, this); //20fps (1000/50)
         gameLoop.start();
@@ -264,6 +273,9 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
         for (Block ghost : ghosts) {
             if (collision(ghost, pacman)) {
                 lives -= 1;
+                if (soundManager != null) {
+                    soundManager.playEffect(LIFE_LOST_SOUND);
+                }
                 if (lives == 0) {
                     gameOver = true;
                     return;
@@ -291,6 +303,9 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
             if (collision(pacman, food)) {
                 foodEaten = food;
                 score += 10;
+                if (soundManager != null) {
+                    soundManager.playEffect(FOOD_SOUND);
+                }
             }
         }
         foods.remove(foodEaten);
@@ -377,7 +392,7 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
 
         Color baseColor = new Color(18, 9, 38);
         Color outlineColor = new Color(200, 00, 00);
-        Color glowColor = new Color(192, 160, 255, 180);
+        Color glowColor = new Color(100, 100, 70);
 
         if (wallImage != null) {
             graphics2D.drawImage(wallImage, 0, 0, tileSize, tileSize, null);
