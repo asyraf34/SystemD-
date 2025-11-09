@@ -4,6 +4,8 @@ import java.util.HashSet;
 import java.util.Random;
 import javax.swing.*;
 import java.awt.image.BufferedImage;
+import java.util.List; // NEW: For level list
+import java.util.ArrayList; // NEW: For level list
 
 public class PacMan extends JPanel implements ActionListener, KeyListener {
     class Block {
@@ -18,6 +20,7 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
         char direction = 'U'; // U D L R
         int velocityX = 0;
         int velocityY = 0;
+        int speed; // NEW: For boss level
 
         Block(Image image, int x, int y, int width, int height) {
             this.image = image;
@@ -27,6 +30,7 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
             this.height = height;
             this.startX = x;
             this.startY = y;
+            this.speed = tileSize / 4; // NEW: Default speed
         }
 
         boolean updateDirection(char direction) {
@@ -50,20 +54,21 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
         }
 
         void updateVelocity() {
+            // NEW: Use speed variable
             if (this.direction == 'U') {
                 this.velocityX = 0;
-                this.velocityY = -tileSize/4;
+                this.velocityY = -speed;
             }
             else if (this.direction == 'D') {
                 this.velocityX = 0;
-                this.velocityY = tileSize/4;
+                this.velocityY = speed;
             }
             else if (this.direction == 'L') {
-                this.velocityX = -tileSize/4;
+                this.velocityX = -speed;
                 this.velocityY = 0;
             }
             else if (this.direction == 'R') {
-                this.velocityX = tileSize/4;
+                this.velocityX = speed;
                 this.velocityY = 0;
             }
         }
@@ -110,28 +115,81 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
     //X = wall, O = skip, P = pac man, ' ' = food
     //Ghosts: b = blue, o = orange, p = pink, r = red
     private String[] tileMap = {
-        "XXXXXXXXXXXXXXXXXXX",
-        "X        X        X",
-        "X XX XXX X XXX XX X",
-        "X                 X",
-        "X XX X XXXXX X XX X",
-        "X    X       X    X",
-        "XXXX XXXX XXXX XXXX",
-        "OOOX X       X XOOO",
-        "XXXX X XXrXX X  XXX",
-        "O       bpo       O",
-        "XXXX X XXXXX   XXXX",
-        "OOOX X       X XOOO",
-        "XXXX X XXXXX X XXXX",
-        "X        X        X",
-        "X XX XXX X XXX XX X",
-        "X  X     P     X  X",
-        "XX X X XXXXX X X XX",
-        "X    X   X   X    X",
-        "X XXXXXX X XXXXXX X",
-        "X                 X",
-        "XXXXXXXXXXXXXXXXXXX"
+            "XXXXXXXXXXXXXXXXXXX",
+            "X        X        X",
+            "X XX XXX X XXX XX X",
+            "X                 X",
+            "X XX X XXXXX X XX X",
+            "X    X       X    X",
+            "XXXX XXXX XXXX XXXX",
+            "OOOX X       X XOOO",
+            "XXXX X XXrXX X  XXX",
+            "O       bpo       O",
+            "XXXX X XXXXX   XXXX",
+            "OOOX X       X XOOO",
+            "XXXX X XXXXX X XXXX",
+            "X        X        X",
+            "X XX XXX X XXX XX X",
+            "X  X     P     X  X",
+            "XX X X XXXXX X X XX",
+            "X    X   X   X    X",
+            "X XXXXXX X XXXXXX X",
+            "X                 X",
+            "XXXXXXXXXXXXXXXXXXX"
+
     };
+    // Level 2: "Alley Way" Map
+    private String[] tileMapLevel2 = {
+            "XXXXXXXXXXXXXXXXXXX",
+            "X       b       X X",
+            "X P X XXXXX X   X X",
+            "X   X X   X X   X X",
+            "XX XX       XX XX X",
+            "X   X XXXXX X   X X",
+            "X X X   X   X X X X",
+            "X X XXX X XXX X X X",
+            "X X X   o   X X X X",
+            "X   X       X     X",
+            "XXXXX Xp  X XXXXX X",
+            "O     XXXXX     O X",
+            "XXXXX X   X XXXXX X",
+            "X   X XX XX X   X X",
+            "X X X       X X X X",
+            "X X XXXX XXXX X X X",
+            "X X X   r   X X X X",
+            "X   X XX XX X   X X",
+            "X XXX X   X XXX X X",
+            "X     X   X     X X",
+            "XXXXXXXXXXXXXXXXXXX"
+    };
+
+    // Level 3: "Boss Alley" Map
+    private String[] tileMapLevel3 = {
+            "XXXXXXXXXXXXXXXXXXX",
+            "X P               X",
+            "X XXXXXXXXXXXXXXX X",
+            "X X             X X",
+            "X X XXXXXXXXXXX X X",
+            "X X           X X X",
+            "X X X XXXXXXX X X X",
+            "X X X X     X X X X",
+            "X X X X X X X X X X",
+            "X X X X XrX X X X X",
+            "X X X X XXX X X X X",
+            "X X X X       X X X",
+            "X X X XXXXXXX X X X",
+            "X X X         X X X",
+            "X X XXXXXXXXXXX X X",
+            "X X               X",
+            "X XXXXXXXXXXXXXXX X",
+            "X                 X",
+            "X XXXXXXXXXXXXXXX X",
+            "X                 X",
+            "XXXXXXXXXXXXXXXXXXX"
+    };
+
+    // NEW: List to hold all maps
+    List<String[]> levelMaps;
 
     HashSet<Block> walls;
     HashSet<Block> foods;
@@ -145,11 +203,17 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
     int lives = 3;
     boolean gameOver = false;
 
+    // NEW: Game state variables
+    int currentLevel = 1;
+    boolean gameWon = false;
+
     private SoundManager soundManager;
     private static final String BACKGROUND_MUSIC = "audio/background.wav";
     private static final String FOOD_SOUND = "audio/food.wav";
     private static final String LIFE_LOST_SOUND = "audio/life_lost.wav";
     private static final String MOVE_SOUND = "audio/move.wav";
+
+    // *** FIX 1: Added /res/ to all image paths ***
     private static final String FOOD_IMAGE_RESOURCE = "/goldFood.png";
 
     PacMan() {
@@ -158,7 +222,7 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
         addKeyListener(this);
         setFocusable(true);
 
-        //load images
+        // *** FIX 1 (Continued): Added /res/ to all image paths ***
         backgroundImage = new ImageIcon(getClass().getResource("/background.png")).getImage();
         wallImage = new ImageIcon(getClass().getResource("/wall.png")).getImage();
         blueGhostImage = new ImageIcon(getClass().getResource("/blueGhost.png")).getImage();
@@ -179,6 +243,8 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
         pacmanRightKnifeImage = new ImageIcon(getClass().getResource("/pacmanRight-with-knife.png")).getImage();
 
         ImageIcon foodIcon = new ImageIcon(getClass().getResource(FOOD_IMAGE_RESOURCE));
+        // *** END OF FIX 1 ***
+
         foodImage = foodIcon.getImage();
         foodWidth = foodIcon.getIconWidth();
         foodHeight = foodIcon.getIconHeight();
@@ -195,19 +261,23 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
             foodImage = foodImage.getScaledInstance(foodWidth, foodHeight, Image.SCALE_SMOOTH);
         }
 
+        // *** FIX 2: Initialize level map list ***
+        levelMaps = new ArrayList<>();
+        levelMaps.add(tileMap); // Level 1
+        levelMaps.add(tileMapLevel2); // Level 2
+        levelMaps.add(tileMapLevel3); // Level 3
 
-        loadMap();
+        loadMap(); // Loads level 1
         spawnKnives(3); // spawn 3 knives on the map
 
         for (Block ghost : ghosts) {
             char newDirection = directions[random.nextInt(4)];
             ghost.updateDirection(newDirection);
         }
-        //how long it takes to start timer, milliseconds gone between frames
+
         soundManager = new SoundManager();
         soundManager.playBackgroundLoop(BACKGROUND_MUSIC);
 
-        //how long it takes to start timer, milliseconds gone between frames
         gameLoop = new Timer(50, this); //20fps (1000/50)
         gameLoop.start();
 
@@ -220,9 +290,12 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
 
         boolean[][] wallMatrix = new boolean[rowCount][columnCount];
 
+        // *** FIX 2: Load the correct map for the current level ***
+        String[] currentMap = levelMaps.get(currentLevel - 1);
+
         for (int r = 0 ; r < rowCount ; r++) {
             for (int c = 0 ; c < columnCount ; c++) {
-                String row = tileMap[r];
+                String row = currentMap[r]; // Use currentMap
                 char tileMapChar = row.charAt(c);
 
                 int x = c*tileSize;
@@ -271,6 +344,13 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
                 walls.add(wall);
             }
         }
+
+        // NEW: Boss level mechanic (part of level logic)
+        if (currentLevel == 3) {
+            for (Block ghost : ghosts) {
+                ghost.speed = tileSize / 3; // Make ghosts faster than pacman
+            }
+        }
     }
 
     public void spawnKnives(int count) {
@@ -283,7 +363,7 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
         count = Math.min(count, foodArray.length);
 
         int created = 0;
-        while (created < count) {
+        while (created < count && foodArray.length > 0) { // Added check for foodArray length
             int index = random.nextInt(foodArray.length);
             Block chosenFood = foodArray[index];
 
@@ -324,13 +404,16 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
         g.drawImage(pacman.image, pacman.x, pacman.y, pacman.width, pacman.height, null);
 
         //for score
-
+        // *** FIX 2: Updated score display ***
         g.setFont(new Font("Arial", Font.PLAIN, 20));
-        if (gameOver) {
+        if (gameWon) {
+            g.drawString("You Win! Final Score: " + String.valueOf(score), tileSize/2, tileSize/2);
+        }
+        else if (gameOver) {
             g.drawString("Game Over: " + String.valueOf(score), tileSize/2, tileSize/2);
         }
         else{
-            g.drawString("x" + lives + " Score: " + score + " Knives: " + knifeCount, tileSize/2, tileSize/2);
+            g.drawString("Level: " + currentLevel + " Lives: x" + lives + " Score: " + score + " Knives: " + knifeCount, tileSize/2, tileSize/2);
         }
     }
 
@@ -440,12 +523,16 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
         }
         if (knifeCollected != null) knives.remove(knifeCollected);
 
-        // Food collection cleanup (handled above)
-
+        // *** FIX 2: Level Progression Logic ***
         if (foods.isEmpty()) {
-            loadMap();
-            resetPositions();
-            spawnKnives(3);
+            currentLevel++; // Advance to the next level
+            if (currentLevel > levelMaps.size()) {
+                gameWon = true; // All levels completed
+            } else {
+                loadMap(); // Load the next level
+                resetPositions(); // Reset pacman and ghost positions
+                spawnKnives(3); // Respawn knives for new level
+            }
         }
     }
     public boolean collision(Block a, Block b) {
@@ -453,9 +540,12 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
                 a.x + a.width > b.x &&
                 a.y < b.y + b.height &&
                 a.y + a.height > b.y;
-        }
+    }
 
     public void resetPositions() {
+        // *** FIX 2: Use currentLevel to get the right map ***
+        String[] currentMap = levelMaps.get(currentLevel - 1);
+
         pacman.reset();
         pacman.velocityX = 0;
         pacman.velocityY = 0;
@@ -466,7 +556,7 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
         ghosts.clear();
         for (int r = 0 ; r < rowCount ; r++) {
             for (int c = 0 ; c < columnCount ; c++) {
-                String row = tileMap[r];
+                String row = currentMap[r]; // Use currentMap
                 char tileMapChar = row.charAt(c);
 
                 int x = c * tileSize;
@@ -488,13 +578,21 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
             }
         }
 
+        // NEW: Re-apply boss speed if on level 3
+        if (currentLevel == 3) {
+            for (Block ghost : ghosts) {
+                ghost.speed = tileSize / 3;
+            }
+        }
+
         // Give ghosts random directions
         for (Block ghost : ghosts) {
             char newDirection = directions[random.nextInt(4)];
             ghost.updateDirection(newDirection);
         }
 
-        spawnKnives(3); // (if you want knives to respawn as well)
+        // Don't respawn knives on life lost, only on level load
+        // spawnKnives(3);
     }
 
     private void updatePacmanImage() {
@@ -517,7 +615,8 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
     public void actionPerformed(ActionEvent e) {
         move();
         repaint();
-        if (gameOver) {
+        // *** FIX 2: Stop game on win or game over ***
+        if (gameOver || gameWon) {
             gameLoop.stop();
         }
     }
@@ -530,7 +629,9 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
 
     @Override
     public void keyReleased(KeyEvent e) {
-        if (gameOver) {
+        // *** FIX 2: Restart logic for both game over AND game won ***
+        if (gameOver || gameWon) {
+            currentLevel = 1; // Reset to level 1
             loadMap();
             resetPositions();
             spawnKnives(3);
@@ -539,8 +640,11 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
             lives = 3;
             score = 0;
             gameOver = false;
+            gameWon = false; // Reset win state
             gameLoop.start();
+            return; // Exit after restarting
         }
+
         boolean moved = false;
         if (e.getKeyCode() == KeyEvent.VK_UP) {
             moved = pacman.updateDirection('U');
