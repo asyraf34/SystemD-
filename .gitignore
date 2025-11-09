@@ -1,5 +1,7 @@
 # Ignore VS code settings
 .vscode/
-.bin/
+/bin/
+*.class
 .idea/
-.iml
+*.iml
+/out/
