@@ -694,19 +694,9 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
     public void keyReleased(KeyEvent e) {
         // *** FIX 2: Restart logic for both game over AND game won ***
         if (gameOver || gameWon) {
-            currentLevel = 1; // Reset to level 1
-            loadMap();
-            pressedKeys.clear();
-            resetPositions();
-            spawnKnives(3);
-            hasWeapon = false;
-            knifeCount = 0;
-            lives = 3;
-            score = 0;
-            gameOver = false;
-            gameWon = false; // Reset win state
-            gameLoop.start();
-            return; // Exit after restarting
+            gameLoop.stop();
+            repaint();
+            return;
         }
 
         pressedKeys.remove(e.getKeyCode());
