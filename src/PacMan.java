@@ -453,12 +453,35 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
         }
 
         if (pacman.isMoving) {
-            if (pacman.x < pacman.targetX) pacman.x += speed;
-            if (pacman.x > pacman.targetX) pacman.x -= speed;
-            if (pacman.y < pacman.targetY) pacman.y += speed;
-            if (pacman.y > pacman.targetY) pacman.y -= speed;
+            int nextX = pacman.x;
+            int nextY = pacman.y;
 
-            // Snap to tile
+            if (pacman.x < pacman.targetX) nextX += speed;
+            if (pacman.x > pacman.targetX) nextX -= speed;
+            if (pacman.y < pacman.targetY) nextY += speed;
+            if (pacman.y > pacman.targetY) nextY -= speed;
+
+            // Collision guard to prevent walking through walls
+            Block nextPos = new Block(null, nextX, nextY, pacman.width, pacman.height);
+            boolean blocked = false;
+            for (Block wall : walls) {
+                if (collision(nextPos, wall)) {
+                    blocked = true;
+                    break;
+                }
+            }
+
+            if (!blocked) {
+                pacman.x = nextX;
+                pacman.y = nextY;
+            } else {
+                // Stop if collided
+                pacman.isMoving = false;
+                pacman.targetX = pacman.x;
+                pacman.targetY = pacman.y;
+            }
+
+            // Snap cleanly to tile
             if (Math.abs(pacman.x - pacman.targetX) < speed &&
                     Math.abs(pacman.y - pacman.targetY) < speed) {
                 pacman.x = pacman.targetX;
@@ -466,6 +489,7 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
                 pacman.isMoving = false;
             }
         }
+
 
 
 
@@ -611,6 +635,12 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
         pacman.velocityX = 0;
         pacman.velocityY = 0;
         pacman.direction = 0;
+
+        // Fully reset movement state on restart/reset
+        pacman.isMoving = false;
+        pacman.targetX = pacman.x;
+        pacman.targetY = pacman.y;
+
         updatePacmanImage();
 
         // Re-load ghosts to their original state/positions
@@ -638,6 +668,7 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
                 }
             }
         }
+
 
         // NEW: Re-apply boss speed if on level 3
         if (currentLevel == 3) {
