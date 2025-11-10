@@ -22,6 +22,9 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
         int velocityY = 0;
         int speed; // NEW: For boss level
 
+        boolean isMoving = false;
+        int targetX, targetY;
+
         Block(Image image, int x, int y, int width, int height) {
             this.image = image;
             this.x = x;
@@ -111,6 +114,9 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
     private HashSet<Block> knives;
     private boolean hasWeapon = false;
     private int knifeCount = 0;
+
+    private final HashSet<Integer> pressedKeys = new HashSet<>();
+
 
     //X = wall, O = skip, P = pac man, ' ' = food
     //Ghosts: b = blue, o = orange, p = pink, r = red
@@ -430,6 +436,39 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
                 break;
             }
         }
+
+        int speed = 8; // pixels per frame
+        int moveStep = tileSize;
+
+        if (!pacman.isMoving) {
+            if (pressedKeys.contains(KeyEvent.VK_UP)) {
+                attemptMove('U', 0, -moveStep);
+            } else if (pressedKeys.contains(KeyEvent.VK_DOWN)) {
+                attemptMove('D', 0, moveStep);
+            } else if (pressedKeys.contains(KeyEvent.VK_LEFT)) {
+                attemptMove('L', -moveStep, 0);
+            } else if (pressedKeys.contains(KeyEvent.VK_RIGHT)) {
+                attemptMove('R', moveStep, 0);
+            }
+        }
+
+        if (pacman.isMoving) {
+            if (pacman.x < pacman.targetX) pacman.x += speed;
+            if (pacman.x > pacman.targetX) pacman.x -= speed;
+            if (pacman.y < pacman.targetY) pacman.y += speed;
+            if (pacman.y > pacman.targetY) pacman.y -= speed;
+
+            // Snap to tile
+            if (Math.abs(pacman.x - pacman.targetX) < speed &&
+                    Math.abs(pacman.y - pacman.targetY) < speed) {
+                pacman.x = pacman.targetX;
+                pacman.y = pacman.targetY;
+                pacman.isMoving = false;
+            }
+        }
+
+
+
         // Frame checks
         if (pacman.x < 0) pacman.x = 0;
         if (pacman.y < 0) pacman.y = 0;
@@ -535,6 +574,28 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
             }
         }
     }
+
+    private void attemptMove(char dir, int dx, int dy) {
+        int newX = pacman.x + dx;
+        int newY = pacman.y + dy;
+
+        Block temp = new Block(null, newX, newY, pacman.width, pacman.height);
+        for (Block wall : walls) {
+            if (collision(temp, wall)) return; // blocked
+        }
+
+        pacman.direction = dir;
+        if (dir == 'U') pacman.image = pacmanUpImage;
+        else if (dir == 'D') pacman.image = pacmanDownImage;
+        else if (dir == 'L') pacman.image = pacmanLeftImage;
+        else if (dir == 'R') pacman.image = pacmanRightImage;
+
+        pacman.targetX = newX;
+        pacman.targetY = newY;
+        pacman.isMoving = true;
+    }
+
+
     public boolean collision(Block a, Block b) {
         return  a.x < b.x + b.width &&
                 a.x + a.width > b.x &&
@@ -625,7 +686,7 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
     public void keyTyped(KeyEvent e) {}
 
     @Override
-    public void keyPressed(KeyEvent e) {}
+    public void keyPressed(KeyEvent e) {pressedKeys.add(e.getKeyCode());}
 
     @Override
     public void keyReleased(KeyEvent e) {
@@ -645,20 +706,11 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
             return; // Exit after restarting
         }
 
+        pressedKeys.remove(e.getKeyCode());
         boolean moved = false;
-        if (e.getKeyCode() == KeyEvent.VK_UP) {
-            moved = pacman.updateDirection('U');
+        if (e.getKeyCode() == KeyEvent.VK_UP || e.getKeyCode() == KeyEvent.VK_DOWN || e.getKeyCode() == KeyEvent.VK_LEFT || e.getKeyCode() == KeyEvent.VK_RIGHT) {
+            moved = true;
         }
-        else if (e.getKeyCode() == KeyEvent.VK_DOWN) {
-            moved = pacman.updateDirection('D');
-        }
-        else if (e.getKeyCode() == KeyEvent.VK_LEFT) {
-            moved = pacman.updateDirection('L');
-        }
-        else if (e.getKeyCode() == KeyEvent.VK_RIGHT) {
-            moved = pacman.updateDirection('R');
-        }
-
         if (moved && soundManager != null) {
             soundManager.playEffect(MOVE_SOUND);
         }
