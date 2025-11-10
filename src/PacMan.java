@@ -17,7 +17,7 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
 
         int startX;
         int startY;
-        char direction = 'U'; // U D L R
+        char direction = 0; // U D L R
         int velocityX = 0;
         int velocityY = 0;
         int speed; // NEW: For boss level
@@ -610,7 +610,7 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
         pacman.reset();
         pacman.velocityX = 0;
         pacman.velocityY = 0;
-        pacman.direction = 'R';
+        pacman.direction = 0;
         updatePacmanImage();
 
         // Re-load ghosts to their original state/positions
@@ -676,6 +676,8 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
     public void actionPerformed(ActionEvent e) {
         move();
         repaint();
+        for(int hash : pressedKeys)
+            System.out.println(hash);
         // *** FIX 2: Stop game on win or game over ***
         if (gameOver || gameWon) {
             gameLoop.stop();
@@ -694,6 +696,7 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
         if (gameOver || gameWon) {
             currentLevel = 1; // Reset to level 1
             loadMap();
+            pressedKeys.clear();
             resetPositions();
             spawnKnives(3);
             hasWeapon = false;
