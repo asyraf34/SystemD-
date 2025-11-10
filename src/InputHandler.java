@@ -35,12 +35,8 @@ public class InputHandler implements KeyListener {
      * You would call this and reset() from your game loop.
      */
     public boolean didMoveKeyRelease(SoundManager soundManager) {
-        // This is a simplified logic. In a real game, you might
-        // want to check for the *specific* key release.
-        // For now, let's stick to the original logic.
-        return false; // We'll let PacMan handle this for now.
+        return false;
     }
-
 
     @Override
     public void keyTyped(KeyEvent e) {
@@ -56,14 +52,12 @@ public class InputHandler implements KeyListener {
     public void keyReleased(KeyEvent e) {
         pressedKeys.remove(e.getKeyCode());
 
-        // You could even move the sound logic here
-        /*
-        int key = e.getKeyCode();
-        if (key == KeyEvent.VK_UP || key == KeyEvent.VK_DOWN ||
-            key == KeyEvent.VK_LEFT || key == KeyEvent.VK_RIGHT) {
-            // Need a reference to soundManager if you do this
-            // soundManager.playEffect(lastMoveSound);
-        }
-        */
     }
+    public void clear() {
+        pressedKeys.clear();
+    }
+    public boolean anyKeyPressed() {
+        return !pressedKeys.isEmpty();
+    }
+
 }
