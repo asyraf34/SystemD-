@@ -12,6 +12,8 @@ public class Renderer {
     private final AssetManager assetManager;
     private final GameMap gameMap;
     private final int tileSize;
+    private int boardWidth;
+    private int boardHeight;
 
     public Renderer(AssetManager assetManager, GameMap gameMap, int tileSize) {
         this.assetManager = assetManager;
@@ -51,11 +53,87 @@ public class Renderer {
 
     /**
      * Draws the heads-up display (score, lives, etc.).
+     * Draws Game Over, Game Win and inter-level banner
      */
+
     private void drawHUD(Graphics g, PacMan.GameState state) {
         g.setFont(new Font("Arial", Font.PLAIN, 20));
         g.setColor(Color.WHITE);
         String text;
+        boardWidth = tileSize * gameMap.getColumnCount();
+        boardHeight = tileSize * gameMap.getRowCount();
+
+        // Draws Game Over Bannner
+        if (state.gameOver) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setColor(new Color(0, 0, 0, 140));
+            g2.fillRect(0, 0, boardWidth, boardHeight);
+
+            String title = "GAME OVER";
+            g2.setFont(g2.getFont().deriveFont(Font.BOLD, 56f));
+            FontMetrics fm = g2.getFontMetrics();
+            int tx = (boardWidth - fm.stringWidth(title)) / 2;
+            int ty = boardHeight / 2 - fm.getHeight();
+            g2.setColor(Color.WHITE);
+            g2.drawString(title, tx, ty);
+
+            // Subtext
+            String sub = "Press any key to restart";
+            g2.setFont(g2.getFont().deriveFont(Font.PLAIN, 28f));
+            FontMetrics fm2 = g2.getFontMetrics();
+            int sx = (boardWidth - fm2.stringWidth(sub)) / 2;
+            int sy = ty + fm.getHeight() + 40;
+            g2.drawString(sub, sx, sy);
+            g2.dispose();
+            return;
+        }
+
+        // Draws Game Won Banner
+        if (state.gameWon) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setColor(new Color(0, 0, 0, 140));
+            g2.fillRect(0, 0, boardWidth, boardHeight);
+
+            String title = "YOU WIN!";
+            g2.setFont(g2.getFont().deriveFont(Font.BOLD, 56f));
+            FontMetrics fm = g2.getFontMetrics();
+            int tx = (boardWidth - fm.stringWidth(title)) / 2;
+            int ty = boardHeight / 2 - fm.getHeight();
+            g2.setColor(Color.WHITE);
+            g2.drawString(title, tx, ty);
+
+            String sub = "Press any key to restart";
+            g2.setFont(g2.getFont().deriveFont(Font.PLAIN, 28f));
+            FontMetrics fm2 = g2.getFontMetrics();
+            int sx = (boardWidth - fm2.stringWidth(sub)) / 2;
+            int sy = ty + fm.getHeight() + 40;
+            g2.drawString(sub, sx, sy);
+            g2.dispose();
+            return;
+        }
+
+        if (state.interLevel) {
+            // Dim background
+            Graphics2D g2d = (Graphics2D) g;
+            Composite old = g2d.getComposite();
+            g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.6f));
+            g2d.setColor(Color.black);
+            g2d.fillRect(0, 0, tileSize * gameMap.getColumnCount(), tileSize * gameMap.getRowCount());
+            g2d.setComposite(old);
+
+            // Banner “LEVEL X”
+            String banner = "LEVEL " + state.nextLevelToStart;
+            Font oldFont = g.getFont();
+            g.setFont(oldFont.deriveFont(Font.BOLD, 56f));
+            FontMetrics fm = g.getFontMetrics();
+            int x = (tileSize * gameMap.getColumnCount() - fm.stringWidth(banner)) / 2;
+            int y = (tileSize * gameMap.getRowCount()) / 2;
+
+            g.setColor(Color.WHITE);
+            g.drawString(banner, x, y);
+            g.setFont(oldFont);
+            return; // Don’t draw the normal HUD underneath
+        }
 
         if (state.gameWon) {
             text = "You Win! Final Score: " + state.score;

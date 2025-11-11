@@ -32,6 +32,12 @@ public class PacMan extends JPanel implements ActionListener {
     private final MovementManager movementManager;
     private final CollisionManager collisionManager;
 
+    // === Inter-level banner state ===
+    private static final int INTERLEVEL_TICKS = 15; // ~3s if 50ms per tick
+
+    // === Game Won & Game Over banner state ===
+    private static final int RESTART_DEBOUNCE_TICKS = 10;
+
     // --- Game State (Inner Class) ---
     /**
      * A "data class" to hold the complete game state,
@@ -50,6 +56,10 @@ public class PacMan extends JPanel implements ActionListener {
         public HashSet<Entity> knives;
         public HashSet<Actor> ghosts;
         public Actor pacman;
+        public boolean interLevel = false;
+        public int interLevelTicks = 0;
+        public int nextLevelToStart = 0;
+        public int restartDebounceTicks = 0; // prevent auto-restart caused by key
     }
 
     private final GameState state;
@@ -93,6 +103,7 @@ public class PacMan extends JPanel implements ActionListener {
         // --- Input Setup ---
         addKeyListener(inputHandler); // Delegate listener
         setFocusable(true);
+        requestFocusInWindow();
     }
 
     /**
@@ -213,19 +224,55 @@ public class PacMan extends JPanel implements ActionListener {
 
     @Override
     public void actionPerformed(ActionEvent e) {
-        if (!state.gameOver && !state.gameWon) {
-            updateGame();
-        }
+        updateGame();  // always tick; updateGame() pauses when needed
         repaint();
-        if (state.gameOver || state.gameWon) {
-            gameLoop.stop();
-        }
     }
 
     /**
      * Main game logic update method. Now just coordinates the managers.
      */
     private void updateGame() {
+
+        // ====== Game Over / Win pause & restart ======
+        if (state.gameOver || state.gameWon) {
+            // Count debounce
+            if (state.restartDebounceTicks > 0) {
+                state.restartDebounceTicks--;
+                repaint();
+                return; // Don't move in debounce
+            }
+
+            // After debounce, wait for key press
+            if (inputHandler.anyKeyPressed()) {
+                restartGame();
+            }
+
+            repaint();
+            return;     // block movement
+        }
+
+        // If inter-level banner is active, tick down and wait
+        if (state.interLevel) {
+            state.interLevelTicks--;
+            if (state.interLevelTicks <= 0) {
+                state.interLevel = false;
+                state.currentLevel = state.nextLevelToStart;
+
+                // Safety: if player finished the last level during banner
+                if (state.currentLevel > gameMap.getLevelCount()) {
+                    state.gameWon = true;
+                } else {
+                    loadMap();        // rebuild entities for the new level
+                    resetPositions(); // put sprites at their starts
+                    spawnKnives(3);   // re-place knives for the new level
+                }
+            }
+
+            // Still showing the banner this frame: draw only, skip physics
+            repaint();
+            return;
+        }
+
         // --- 1. Handle Movement ---
         // moveStarted is true if Pac-Man just started a new move
         boolean moveStarted = movementManager.updateActorPositions(state, inputHandler, gameMap, soundManager, tileSize);
@@ -237,7 +284,7 @@ public class PacMan extends JPanel implements ActionListener {
 
         // --- 3. React to Collisions ---
 
-        // Update Pac-Man's image if he moved, picked up a knife, or used a knife
+        // Update Mafia's image if he moved, picked up a knife, or used a knife
         if (moveStarted || knifePickedUp || ghostResult == CollisionManager.GHOST_COLLISION_GHOST_KILLED) {
             updatePacmanImage();
         }
@@ -246,6 +293,9 @@ public class PacMan extends JPanel implements ActionListener {
         if (ghostResult == CollisionManager.GHOST_COLLISION_LIFE_LOST) {
             if (state.lives == 0) {
                 state.gameOver = true;
+                inputHandler.clear();
+                state.restartDebounceTicks = RESTART_DEBOUNCE_TICKS;
+
             } else {
                 resetPositions();
             }
@@ -260,21 +310,48 @@ public class PacMan extends JPanel implements ActionListener {
      * Checks if all food is eaten and advances the level.
      */
     private void checkLevelCompletion() {
-        if (state.foods.isEmpty() && !state.gameWon) {
-            state.currentLevel++;
-            if (state.currentLevel > gameMap.getLevelCount()) {
+        if (state.foods.isEmpty() && !state.gameWon && !state.interLevel) {
+            state.nextLevelToStart = state.currentLevel + 1;
+
+            // If exceed total levels, just mark won and show the win HUD
+            if (state.nextLevelToStart > gameMap.getLevelCount()) {
                 state.gameWon = true;
-            } else {
-                // Load next level
-                loadMap();
-                resetPositions();
-                spawnKnives(3);
+                inputHandler.clear();
+                state.restartDebounceTicks = RESTART_DEBOUNCE_TICKS;
+
+                return;
             }
+
+            // Enter inter-level mode
+            state.interLevel = true;
+            state.interLevelTicks = INTERLEVEL_TICKS;
+
+            // clear any held keys so mafia doesn't move right away
+            inputHandler.clear();
         }
+    }
+    private void restartGame() {
+        // Reset
+        state.currentLevel = 1;
+        state.score = 0;
+        state.lives = 3;
+        state.hasWeapon = false;
+        state.knifeCount = 0;
+        state.gameOver = false;
+        state.gameWon = false;
+        state.interLevel = false;
+        state.interLevelTicks = 0;
+
+        // Clear input so that it wouldn't move
+        inputHandler.clear();
+
+        // Recreate level
+        loadMap();
+        resetPositions();
+        spawnKnives(3);
     }
 
     // --- Rendering (Delegated) ---
-
     @Override
     public void paintComponent(Graphics g) {
         super.paintComponent(g);
@@ -282,7 +359,7 @@ public class PacMan extends JPanel implements ActionListener {
         renderer.drawGame(g, this, state);
     }
 
-    // --- Utility Methods (Kept in PacMan) ---
+    // --- Utility Methods (Kept in Mafia) ---
 
     /**
      * Updates Pac-Man's image based on his direction and weapon status.
