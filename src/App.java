@@ -6,7 +6,8 @@ public class App {
         int columnCount = 19;
         int tileSize = 32;
         int boardWidth = columnCount * tileSize;
-        int boardHeight = rowCount * tileSize;
+        int scoreboardHeight = tileSize * 2;
+        int boardHeight = rowCount * tileSize + scoreboardHeight;
 
         JFrame frame = new JFrame("Pac Man");
         // frame.setVisible(true);

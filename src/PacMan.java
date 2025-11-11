@@ -4,355 +4,385 @@ import java.util.HashSet;
 import java.util.Random;
 import javax.swing.*;
 
-public class PacMan extends JPanel implements ActionListener, KeyListener {
-    class Block {
-        int x;
-        int y;
-        int width;
-        int height;
-        Image image;
+/**
+ * Main game class. Acts as the "Conductor" for the game.
+ * It owns the game state and coordinates the other managers (Renderer,
+ * InputHandler, MovementManager, CollisionManager) to run the game.
+ * Its complexity is now very low, as all logic is delegated.
+ */
+public class PacMan extends JPanel implements ActionListener {
 
-        int startX;
-        int startY;
-        char direction = 'U'; // U D L R
-        int velocityX = 0;
-        int velocityY = 0;
+    // --- Game Configuration ---
+    private final int tileSize = 32;
+    private final int pacmanSpeed;
+    private final int ghostSpeed;
+    private final int bossSpeed;
+    private final char[] directions = {'U', 'D', 'L', 'R'};
 
-        Block(Image image, int x, int y, int width, int height) {
-            this.image = image;
-            this.x = x;
-            this.y = y;
-            this.width = width;
-            this.height = height;
-            this.startX = x;
-            this.startY = y;
-        }
+    // --- Core Components ---
+    private final AssetManager assetManager;
+    private final GameMap gameMap;
+    private final SoundManager soundManager;
+    private final Timer gameLoop;
+    private final Random random = new Random();
 
-        void updateDirection(char direction) {
-            char prevDirection = this.direction;
-            this.direction = direction;
-            updateVelocity();
-            this.x += this.velocityX;
-            this.y += this.velocityY;
-            for (Block wall : walls) {
-                if (collision(this, wall)) {
-                    this.x -= this.velocityX;
-                    this.y -= this.velocityY;
-                    this.direction = prevDirection;
-                    updateVelocity();
-                }
-            }
-        }
+    // --- New Delegated Managers ---
+    private final InputHandler inputHandler;
+    private final Renderer renderer;
+    private final MovementManager movementManager;
+    private final CollisionManager collisionManager;
 
-        void updateVelocity() {
-            if (this.direction == 'U') {
-                this.velocityX = 0;
-                this.velocityY = -tileSize/4;
-            }
-            else if (this.direction == 'D') {
-                this.velocityX = 0;
-                this.velocityY = tileSize/4;
-            }
-            else if (this.direction == 'L') {
-                this.velocityX = -tileSize/4;
-                this.velocityY = 0;
-            }
-            else if (this.direction == 'R') {
-                this.velocityX = tileSize/4;
-                this.velocityY = 0;
-            }
-        }
+    // === Inter-level banner state ===
+    private static final int INTERLEVEL_TICKS = 15; // ~3s if 50ms per tick
 
-        void reset() {
-            this.x = this.startX;
-            this.y = this.startY;
-        }
+    // === Game Won & Game Over banner state ===
+    private static final int RESTART_DEBOUNCE_TICKS = 10;
+
+    // --- Game State (Inner Class) ---
+    /**
+     * A "data class" to hold the complete game state,
+     * making it easy to pass to the managers.
+     */
+    public class GameState {
+        public int score = 0;
+        public int lives = 3;
+        public boolean gameOver = false;
+        public boolean gameWon = false;
+        public int currentLevel = 1;
+        public int knifeCount = 0;
+        public boolean hasWeapon = false;
+        public HashSet<Entity> walls;
+        public HashSet<Entity> foods;
+        public HashSet<Entity> knives;
+        public HashSet<Actor> ghosts;
+        public Actor pacman;
+        public boolean interLevel = false;
+        public int interLevelTicks = 0;
+        public int nextLevelToStart = 0;
+        public int restartDebounceTicks = 0; // prevent auto-restart caused by key
     }
 
-    private int rowCount = 21;
-    private int columnCount = 19;
-    private int tileSize = 32;
-    private int boardWidth = columnCount * tileSize;
-    private int boardHeight = rowCount * tileSize;
-
-    private Image wallImage;
-    private Image blueGhostImage;
-    private Image orangeGhostImage;
-    private Image pinkGhostImage;
-    private Image redGhostImage;
-
-    private Image pacmanUpImage;
-    private Image pacmanDownImage;
-    private Image pacmanLeftImage;
-    private Image pacmanRightImage;
-
-    //X = wall, O = skip, P = pac man, ' ' = food
-    //Ghosts: b = blue, o = orange, p = pink, r = red
-    private String[] tileMap = {
-        "XXXXXXXXXXXXXXXXXXX",
-        "X        X        X",
-        "X XX XXX X XXX XX X",
-        "X                 X",
-        "X XX X XXXXX X XX X",
-        "X    X       X    X",
-        "XXXX XXXX XXXX XXXX",
-        "OOOX X       X XOOO",
-        "XXXX X XXrXX X XXXX",
-        "O       bpo       O",
-        "XXXX X XXXXX X XXXX",
-        "OOOX X       X XOOO",
-        "XXXX X XXXXX X XXXX",
-        "X        X        X",
-        "X XX XXX X XXX XX X",
-        "X  X     P     X  X",
-        "XX X X XXXXX X X XX",
-        "X    X   X   X    X",
-        "X XXXXXX X XXXXXX X",
-        "X                 X",
-        "XXXXXXXXXXXXXXXXXXX"
-    };
-
-    HashSet<Block> walls;
-    HashSet<Block> foods;
-    HashSet<Block> ghosts;
-    Block pacman;
-
-    Timer gameLoop;
-    char[] directions = {'U', 'D', 'L', 'R'}; //up down left right
-    Random random = new Random();
-    int score = 0;
-    int lives = 3;
-    boolean gameOver = false;
+    private final GameState state;
 
     PacMan() {
+        // --- Initialize State ---
+        state = new GameState();
+        state.currentLevel = 1;
+
+        // --- Initialize Core Components ---
+        assetManager = new AssetManager(tileSize);
+        gameMap = new GameMap();
+        soundManager = new SoundManager();
+
+        // --- Initialize New Managers ---
+        inputHandler = new InputHandler();
+        renderer = new Renderer(assetManager, gameMap, tileSize);
+        movementManager = new MovementManager(directions); // Pass directions
+        collisionManager = new CollisionManager();
+
+        // --- Board Setup ---
+        int boardWidth = gameMap.getColumnCount() * tileSize;
+        int boardHeight = gameMap.getRowCount() * tileSize;
         setPreferredSize(new Dimension(boardWidth, boardHeight));
-        setBackground(Color.BLACK);
-        addKeyListener(this);
-        setFocusable(true);
+        setBackground(Color.LIGHT_GRAY);
 
-        //load images
-        wallImage = new ImageIcon(getClass().getResource("/wall.png")).getImage();
-        blueGhostImage = new ImageIcon(getClass().getResource("/blueGhost.png")).getImage();
-        orangeGhostImage = new ImageIcon(getClass().getResource("/orangeGhost.png")).getImage();
-        pinkGhostImage = new ImageIcon(getClass().getResource("/pinkGhost.png")).getImage();
-        redGhostImage = new ImageIcon(getClass().getResource("/redGhost.png")).getImage();
+        // --- Entity Speeds ---
+        pacmanSpeed = tileSize / 4;
+        ghostSpeed = tileSize / 4;
+        bossSpeed = tileSize / 3;
 
-        pacmanUpImage = new ImageIcon(getClass().getResource("/pacmanUp.png")).getImage();
-        pacmanDownImage = new ImageIcon(getClass().getResource("/pacmanDown.png")).getImage();
-        pacmanLeftImage = new ImageIcon(getClass().getResource("/pacmanLeft.png")).getImage();
-        pacmanRightImage = new ImageIcon(getClass().getResource("/pacmanRight.png")).getImage();
-
+        // --- Load Level 1 ---
         loadMap();
-        for (Block ghost : ghosts) {
-            char newDirection = directions[random.nextInt(4)];
-            ghost.updateDirection(newDirection);
-        }
-        //how long it takes to start timer, milliseconds gone between frames
-        gameLoop = new Timer(50, this); //20fps (1000/50)
+        spawnKnives(3);
+
+        // --- Start Game ---
+        soundManager.playBackgroundLoop("audio/background.wav");
+        gameLoop = new Timer(50, this); // 20fps
         gameLoop.start();
 
+        // --- Input Setup ---
+        addKeyListener(inputHandler); // Delegate listener
+        setFocusable(true);
+        requestFocusInWindow();
     }
 
+    /**
+     * Loads all entities for the current level.
+     */
     public void loadMap() {
-        walls = new HashSet<Block>();
-        foods = new HashSet<Block>();
-        ghosts = new HashSet<Block>();
+        state.walls = new HashSet<>();
+        state.foods = new HashSet<>();
+        state.ghosts = new HashSet<>();
+        state.knives = new HashSet<>();
 
-        for (int r = 0 ; r < rowCount ; r++) {
-            for (int c = 0 ; c < columnCount ; c++) {
-                String row = tileMap[r];
-                char tileMapChar = row.charAt(c);
+        boolean[][] wallMatrix = new boolean[gameMap.getRowCount()][gameMap.getColumnCount()];
+        String[] currentMap = gameMap.getMapData(state.currentLevel);
 
-                int x = c*tileSize;
-                int y = r*tileSize;
+        for (int r = 0; r < gameMap.getRowCount(); r++) {
+            String row = currentMap[r];
+            for (int c = 0; c < gameMap.getColumnCount(); c++) {
+                char tileChar = row.charAt(c);
+                int x = c * tileSize;
+                int y = r * tileSize;
 
-                if (tileMapChar == 'X') {
-                    Block wall = new Block(wallImage, x, y, tileSize, tileSize);
-                    walls.add(wall);
-                }
-                else if (tileMapChar == 'b') {
-                    Block ghost = new Block(blueGhostImage, x, y, tileSize, tileSize);
-                    ghosts.add(ghost);
-                }
-                else if (tileMapChar == 'o') {
-                    Block ghost = new Block(orangeGhostImage, x, y, tileSize, tileSize);
-                    ghosts.add(ghost);
-                }
-                else if (tileMapChar == 'p') {
-                    Block ghost = new Block(pinkGhostImage, x, y, tileSize, tileSize);
-                    ghosts.add(ghost);
-                }
-                else if (tileMapChar == 'r') {
-                    Block ghost = new Block(redGhostImage, x, y, tileSize, tileSize);
-                    ghosts.add(ghost);
-                }
-                else if (tileMapChar == 'P') {
-                    pacman = new Block(pacmanRightImage, x, y, tileSize, tileSize);
-                }
-                else if (tileMapChar == ' ') {
-                    Block food = new Block(null, x + 14, y + 14, 4, 4);
-                    foods.add(food);
+                switch (tileChar) {
+                    case 'X':
+                        wallMatrix[r][c] = true;
+                        break;
+                    case 'P':
+                        state.pacman = new Actor(assetManager.getPacmanRightImage(), x, y, tileSize, tileSize, pacmanSpeed);
+                        break;
+                    case ' ':
+                        int foodX = x + (tileSize - assetManager.getFoodWidth()) / 2;
+                        int foodY = y + (tileSize - assetManager.getFoodHeight()) / 2;
+                        state.foods.add(new Entity(assetManager.getFoodImage(), foodX, foodY, assetManager.getFoodWidth(), assetManager.getFoodHeight()));
+                        break;
                 }
             }
         }
 
+        spawnGhosts(currentMap);
 
-    }
-
-    public void paintComponent(Graphics g) {
-        super.paintComponent(g);
-        draw(g);
-    }
-
-    public void draw(Graphics g) {
-        g.drawImage(pacman.image, pacman.x, pacman.y, pacman.width, pacman.height, null);
-
-        for (Block ghost : ghosts){
-            g.drawImage(ghost.image, ghost.x, ghost.y, ghost.width, ghost.height, null);
-        }
-        for (Block wall : walls) {
-            g.drawImage(wall.image, wall.x, wall.y, wall.width, wall.height, null);
-        }
-        g.setColor(Color.WHITE);
-        for (Block food : foods) {
-            g.fillRect(food.x, food.y, food.width, food.height);
-        }
-
-        //for score
-
-        g.setFont(new Font("Arial", Font.PLAIN, 20));
-        if (gameOver) {
-            g.drawString("Game Over: " + String.valueOf(score), tileSize/2, tileSize/2);
-        }
-        else{
-            g.drawString("x" + String.valueOf(lives) + " Score: " + String.valueOf(score), tileSize/2, tileSize/2);
+        // Create textured wall images using the Renderer
+        for (int r = 0; r < gameMap.getRowCount(); r++) {
+            for (int c = 0; c < gameMap.getColumnCount(); c++) {
+                if (wallMatrix[r][c]) {
+                    int x = c * tileSize;
+                    int y = r * tileSize;
+                    Image wallImg = renderer.createWallTexture(wallMatrix, r, c);
+                    state.walls.add(new Entity(wallImg, x, y, tileSize, tileSize));
+                }
+            }
         }
     }
 
-    public void move() {
+    /**
+     * Spawns (or respawns) ghosts based on the map.
+     */
+    private void spawnGhosts(String[] currentMap) {
+        state.ghosts.clear();
+        int speed = (state.currentLevel == 3) ? bossSpeed : ghostSpeed;
 
-        pacman.x += pacman.velocityX;
-        pacman.y += pacman.velocityY;
+        for (int r = 0; r < gameMap.getRowCount(); r++) {
+            String row = currentMap[r];
+            for (int c = 0; c < gameMap.getColumnCount(); c++) {
+                char tileChar = row.charAt(c);
+                int x = c * tileSize;
+                int y = r * tileSize;
 
-        //check pacman-wall collisions
-        for (Block wall : walls) {
-            if (collision(pacman, wall)) {
-                pacman.x -= pacman.velocityX;
-                pacman.y -= pacman.velocityY;
-                break;
-            }
-        }
+                Image ghostImage = null;
+                if (tileChar == 'b') ghostImage = assetManager.getBlueGhostImage();
+                else if (tileChar == 'o') ghostImage = assetManager.getOrangeGhostImage();
+                else if (tileChar == 'p') ghostImage = assetManager.getPinkGhostImage();
+                else if (tileChar == 'r') ghostImage = assetManager.getRedGhostImage();
 
-        //check pacman-ghost collisions
-        for (Block ghost : ghosts) {
-            if (collision(ghost, pacman)) {
-                lives -= 1;
-                if (lives == 0) {
-                    gameOver = true;
-                    return;
-                }
-                resetPositions();
-            }
-
-
-
-            if (ghost.y == tileSize*9 && ghost.direction != 'U' && ghost.direction != 'D') {
-                ghost.updateDirection('U');
-            }
-            ghost.x += ghost.velocityX;
-            ghost.y += ghost.velocityY;
-            for (Block wall : walls) {
-                if (collision(ghost, wall) || ghost.x <= 0 || ghost.x + ghost.width >= boardWidth) {
-                    ghost.x -= ghost.velocityX;
-                    ghost.y -= ghost.velocityY;
-                    char newDirection = directions[random.nextInt(4)];
-                    ghost.updateDirection(newDirection);
+                if (ghostImage != null) {
+                    Actor ghost = new Actor(ghostImage, x, y, tileSize, tileSize, speed);
+                    ghost.direction = directions[random.nextInt(directions.length)];
+                    ghost.updateVelocity();
+                    state.ghosts.add(ghost);
                 }
             }
         }
-        //check food collision
-        Block foodEaten = null;
-        for (Block food : foods) {
-            if (collision(pacman, food)) {
-                foodEaten = food;
-                score += 10;
+    }
+
+    /**
+     * Spawns a number of knives by replacing random food pellets.
+     */
+    public void spawnKnives(int count) {
+        state.knives.clear();
+        Entity[] foodArray = state.foods.toArray(new Entity[0]);
+        count = Math.min(count, foodArray.length);
+        int created = 0;
+
+        while (created < count && foodArray.length > 0) {
+            int index = random.nextInt(foodArray.length);
+            Entity chosenFood = foodArray[index];
+
+            if (state.foods.contains(chosenFood)) {
+                int knifeX = chosenFood.x + (chosenFood.width - (tileSize / 2)) / 2;
+                int knifeY = chosenFood.y + (chosenFood.height - (tileSize / 2)) / 2;
+                state.knives.add(new Entity(assetManager.getKnifeImage(), knifeX, knifeY, tileSize / 2, tileSize / 2));
+                state.foods.remove(chosenFood);
+                created++;
             }
         }
-        foods.remove(foodEaten);
-
-        if (foods.isEmpty()) {
-            loadMap();
-            resetPositions();
-        }
-    }
-    public boolean collision(Block a, Block b) {
-        return  a.x < b.x + b.width &&
-                a.x + a.width > b.x &&
-                a.y < b.y + b.height &&
-                a.y + a.height > b.y;
     }
 
+    /**
+     * Resets Pac-Man and ghosts to their starting positions.
+     */
     public void resetPositions() {
-        pacman.reset();
-        pacman.velocityX = 0;
-        pacman.velocityY = 0;
-        for (Block ghost : ghosts) {
-            ghost.reset();
-            char newDirection = directions[random.nextInt(4)];
-            ghost.updateDirection(newDirection);
-        }
+        state.pacman.reset();
+        updatePacmanImage(); // Reset to default image
+
+        String[] currentMap = gameMap.getMapData(state.currentLevel);
+        spawnGhosts(currentMap);
     }
+
+    // --- Main Game Loop ---
 
     @Override
     public void actionPerformed(ActionEvent e) {
-        move();
+        updateGame();  // always tick; updateGame() pauses when needed
         repaint();
-        if (gameOver) {
-            gameLoop.stop();
-        }
     }
 
-    @Override
-    public void keyTyped(KeyEvent e) {}
+    /**
+     * Main game logic update method. Now just coordinates the managers.
+     */
+    private void updateGame() {
 
-    @Override
-    public void keyPressed(KeyEvent e) {}
+        // ====== Game Over / Win pause & restart ======
+        if (state.gameOver || state.gameWon) {
+            // Count debounce
+            if (state.restartDebounceTicks > 0) {
+                state.restartDebounceTicks--;
+                repaint();
+                return; // Don't move in debounce
+            }
 
-    @Override
-    public void keyReleased(KeyEvent e) {
-        if (gameOver) {
-            loadMap();
-            resetPositions();
-            lives = 3;
-            score = 0;
-            gameOver = false;
-            gameLoop.start();
-        }
-        // System.out.println("KeyEvent: " + e.getKeyCode());
-        if (e.getKeyCode() == KeyEvent.VK_UP) {
-            pacman.updateDirection('U');
-        }
-        else if (e.getKeyCode() == KeyEvent.VK_DOWN) {
-            pacman.updateDirection('D');
-        }
-        else if (e.getKeyCode() == KeyEvent.VK_LEFT) {
-            pacman.updateDirection('L');
-        }
-        else if (e.getKeyCode() == KeyEvent.VK_RIGHT) {
-            pacman.updateDirection('R');
+            // After debounce, wait for key press
+            if (inputHandler.anyKeyPressed()) {
+                restartGame();
+            }
+
+            repaint();
+            return;     // block movement
         }
 
-        if (pacman.direction == 'U') {
-            pacman.image = pacmanUpImage;
+        // If inter-level banner is active, tick down and wait
+        if (state.interLevel) {
+            state.interLevelTicks--;
+            if (state.interLevelTicks <= 0) {
+                state.interLevel = false;
+                state.currentLevel = state.nextLevelToStart;
+
+                // Safety: if player finished the last level during banner
+                if (state.currentLevel > gameMap.getLevelCount()) {
+                    state.gameWon = true;
+                } else {
+                    loadMap();        // rebuild entities for the new level
+                    resetPositions(); // put sprites at their starts
+                    spawnKnives(3);   // re-place knives for the new level
+                }
+            }
+
+            // Still showing the banner this frame: draw only, skip physics
+            repaint();
+            return;
         }
-        else if (pacman.direction == 'D') {
-            pacman.image = pacmanDownImage;
+
+        // --- 1. Handle Movement ---
+        // moveStarted is true if Pac-Man just started a new move
+        boolean moveStarted = movementManager.updateActorPositions(state, inputHandler, gameMap, soundManager, tileSize);
+
+        // --- 2. Handle Collisions ---
+        collisionManager.checkFoodCollisions(state, soundManager);
+        boolean knifePickedUp = collisionManager.checkKnifeCollisions(state);
+        int ghostResult = collisionManager.checkGhostCollisions(state, soundManager);
+
+        // --- 3. React to Collisions ---
+
+        // Update Mafia's image if he moved, picked up a knife, or used a knife
+        if (moveStarted || knifePickedUp || ghostResult == CollisionManager.GHOST_COLLISION_GHOST_KILLED) {
+            updatePacmanImage();
         }
-        else if (pacman.direction == 'L') {
-            pacman.image = pacmanLeftImage;
+
+        // Check if a life was lost
+        if (ghostResult == CollisionManager.GHOST_COLLISION_LIFE_LOST) {
+            if (state.lives == 0) {
+                state.gameOver = true;
+                inputHandler.clear();
+                state.restartDebounceTicks = RESTART_DEBOUNCE_TICKS;
+
+            } else {
+                resetPositions();
+            }
+            return; // Stop update for this frame
         }
-        else if (pacman.direction == 'R') {
-            pacman.image = pacmanRightImage;
+
+        // --- 4. Check for Level Win ---
+        checkLevelCompletion();
+    }
+
+    /**
+     * Checks if all food is eaten and advances the level.
+     */
+    private void checkLevelCompletion() {
+        if (state.foods.isEmpty() && !state.gameWon && !state.interLevel) {
+            state.nextLevelToStart = state.currentLevel + 1;
+
+            // If exceed total levels, just mark won and show the win HUD
+            if (state.nextLevelToStart > gameMap.getLevelCount()) {
+                state.gameWon = true;
+                inputHandler.clear();
+                state.restartDebounceTicks = RESTART_DEBOUNCE_TICKS;
+
+                return;
+            }
+
+            // Enter inter-level mode
+            state.interLevel = true;
+            state.interLevelTicks = INTERLEVEL_TICKS;
+
+            // clear any held keys so mafia doesn't move right away
+            inputHandler.clear();
+        }
+    }
+    private void restartGame() {
+        // Reset
+        state.currentLevel = 1;
+        state.score = 0;
+        state.lives = 3;
+        state.hasWeapon = false;
+        state.knifeCount = 0;
+        state.gameOver = false;
+        state.gameWon = false;
+        state.interLevel = false;
+        state.interLevelTicks = 0;
+
+        // Clear input so that it wouldn't move
+        inputHandler.clear();
+
+        // Recreate level
+        loadMap();
+        resetPositions();
+        spawnKnives(3);
+    }
+
+    // --- Rendering (Delegated) ---
+    @Override
+    public void paintComponent(Graphics g) {
+        super.paintComponent(g);
+        // Just one line! Tell the renderer to draw the current state.
+        renderer.drawGame(g, this, state);
+    }
+
+    // --- Utility Methods (Kept in Mafia) ---
+
+    /**
+     * Updates Pac-Man's image based on his direction and weapon status.
+     * This is kept in PacMan because it directly modifies PacMan's actor state.
+     */
+    private void updatePacmanImage() {
+        Actor pacman = state.pacman;
+        if (state.hasWeapon && state.knifeCount > 0) {
+            switch (pacman.direction) {
+                case 'U': pacman.image = assetManager.getPacmanUpKnifeImage(); break;
+                case 'D': pacman.image = assetManager.getPacmanDownKnifeImage(); break;
+                case 'L': pacman.image = assetManager.getPacmanLeftKnifeImage(); break;
+                case 'R': pacman.image = assetManager.getPacmanRightKnifeImage(); break;
+                default:  pacman.image = assetManager.getPacmanRightKnifeImage(); break;
+            }
+        } else {
+            switch (pacman.direction) {
+                case 'U': pacman.image = assetManager.getPacmanUpImage(); break;
+                case 'D': pacman.image = assetManager.getPacmanDownImage(); break;
+                case 'L': pacman.image = assetManager.getPacmanLeftImage(); break;
+                case 'R': pacman.image = assetManager.getPacmanRightImage(); break;
+                default:  pacman.image = assetManager.getPacmanRightImage(); break;
+            }
         }
     }
 }

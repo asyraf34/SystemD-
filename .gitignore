@@ -2,5 +2,6 @@
 .vscode/
 /bin/
 *.class
-*.iml/
-*.idea/
+.idea/
+*.iml
+/out/
