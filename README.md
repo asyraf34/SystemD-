@@ -10,8 +10,8 @@ Stay tuned!
 1. Asyraf (Scrum Master)
 2. Danish (Secretary)
 3. Adib (Developer)
-4. Aiman (Developer + Designer)
-5. Afiq (Developer)
+4. Aiman (Developer)
+5. Afiq (Developer + Designer)
 6. Hana (Developer)
 
 ### Roles details:
