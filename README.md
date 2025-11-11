@@ -11,7 +11,7 @@ Stay tuned!
 2. Danish (Secretary)
 3. Adib (Developer)
 4. Aiman (Developer)
-5. Afiq (Developer)
+5. Afiq (Developer + Designer)
 6. Hana (Developer)
 
 ### Roles details:
