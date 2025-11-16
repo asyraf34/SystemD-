@@ -77,7 +77,7 @@ public class CollisionManager {
                     int tw = ghost.width;
                     int th = ghost.height;
                     int totalTicks = 30; //
-                    String scoreText = "+100";
+                    String scoreText = "~";
 
                     try {
                         DeathAnimation anim = new DeathAnimation(snap, tx, ty, tw, th, totalTicks, scoreText);
