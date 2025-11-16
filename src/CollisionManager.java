@@ -35,7 +35,7 @@ public class CollisionManager {
      * Checks for collisions between Pac-Man and knives.
      * @return true if a knife was picked up (image update needed)
      *
-     * NOTE: use Iterator here to safely remove items while iterating.
+     * Use Iterator  to safely remove items while iterating.
      */
     public boolean checkKnifeCollisions(PacMan.GameState state) {
         Iterator<Entity> it = state.knives.iterator();
