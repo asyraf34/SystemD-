@@ -63,6 +63,16 @@ public class Renderer {
         }
         gm.dispose();
 
+        // --- Insert animation : draw procedural death animations on top ---
+        if (state.animations != null && !state.animations.isEmpty()) {
+            Graphics2D gAnim = (Graphics2D) g.create();
+            gAnim.translate(0, topBarH);
+            for (DeathAnimation da : state.animations) {
+                da.render(gAnim);
+            }
+            gAnim.dispose();
+        }
+
         // HUD on the bars (score/level/lives/knives + overlays)
         drawHUD(g, state);
     }
