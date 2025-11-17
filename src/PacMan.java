@@ -51,6 +51,8 @@ public class PacMan extends JPanel implements ActionListener {
         public int currentLevel = 1;
         public int knifeCount = 0;
         public boolean hasWeapon = false;
+        public Boss boss;
+        public HashSet<Actor> projectiles;
         public HashSet<Entity> walls;
         public HashSet<Entity> foods;
         public HashSet<Entity> knives;
@@ -118,6 +120,8 @@ public class PacMan extends JPanel implements ActionListener {
         state.foods = new HashSet<>();
         state.ghosts = new HashSet<>();
         state.knives = new HashSet<>();
+        state.projectiles = new HashSet<>();
+        state.boss = null;
 
         state.animations.clear();
 
@@ -132,6 +136,9 @@ public class PacMan extends JPanel implements ActionListener {
                 int y = r * tileSize;
 
                 switch (tileChar) {
+                    case 'B':
+                        state.boss = new Boss(assetManager.getPacmanDownImage(), x, y, tileSize, tileSize, bossSpeed);
+                        break;
                     case 'X':
                         wallMatrix[r][c] = true;
                         break;
@@ -216,7 +223,8 @@ public class PacMan extends JPanel implements ActionListener {
     }
 
     /**
-     * Resets Pac-Man and ghosts to their starting positions.
+     * Resets Pac-Man, ghosts, and boss to their starting positions.
+     * Also clears player input.
      */
     public void resetPositions() {
         state.pacman.reset();
@@ -224,6 +232,12 @@ public class PacMan extends JPanel implements ActionListener {
 
         String[] currentMap = gameMap.getMapData(state.currentLevel);
         spawnGhosts(currentMap);
+
+        // --- ADD THESE LINES ---
+        if (state.boss != null) {
+            state.boss.reset(); // Reset boss to its start position
+        }
+        inputHandler.clear(); // CRITICAL: Stop player from moving immediately
     }
 
     // --- Main Game Loop ---
@@ -279,6 +293,19 @@ public class PacMan extends JPanel implements ActionListener {
             return;
         }
 
+        if (state.boss != null) {
+            state.boss.updateAI();
+
+            // Check if boss image needs to change
+            updateBossImage();
+
+            // Attempt to fire projectile
+            Actor newProjectile = state.boss.performLongRangeAttack(state.pacman, assetManager.getProjectile());
+            if (newProjectile != null) {
+                state.projectiles.add(newProjectile);
+            }
+        }
+
         // --- 1. Handle Movement ---
         // moveStarted is true if Pac-Man just started a new move
         boolean moveStarted = movementManager.updateActorPositions(state, inputHandler, gameMap, soundManager, tileSize);
@@ -289,42 +316,65 @@ public class PacMan extends JPanel implements ActionListener {
         if (knifePickedUp){
             soundManager.playEffect("audio/knife_pick.wav");
         }
+
+        int bossResult = CollisionManager.GHOST_COLLISION_NONE;
+        int projectileResult = CollisionManager.GHOST_COLLISION_NONE;
+
+        // Only check boss collisions if the boss exists
+        if (state.boss != null) {
+            bossResult = collisionManager.checkBossCollisions(state, soundManager);
+            // Only check projectile collisions if projectiles exist (or boss exists)
+            if (state.projectiles != null && !state.projectiles.isEmpty()) {
+                projectileResult = collisionManager.checkProjectileCollisions(state, soundManager);
+            }
+        }
+
         int ghostResult = collisionManager.checkGhostCollisions(state, soundManager);
 
         // --- 3. React to Collisions ---
 
-        // Update Mafia's image if he moved, picked up a knife, or used a knife
-        if (moveStarted || knifePickedUp || ghostResult == CollisionManager.GHOST_COLLISION_GHOST_KILLED) {
+        // Check if we need to update Pac-Man's image (moved, got knife, or used knife)
+        boolean usedKnife = (ghostResult == CollisionManager.GHOST_COLLISION_GHOST_KILLED ||
+                bossResult == CollisionManager.GHOST_COLLISION_GHOST_KILLED);
+
+        if (moveStarted || knifePickedUp || usedKnife) {
             updatePacmanImage();
         }
 
-        // Check if a life was lost
-        if (ghostResult == CollisionManager.GHOST_COLLISION_LIFE_LOST) {
-            if (state.lives == 0) {
+        // Check if a life was lost from *any* source
+        boolean lifeLost = (ghostResult == CollisionManager.GHOST_COLLISION_LIFE_LOST ||
+                bossResult == CollisionManager.GHOST_COLLISION_LIFE_LOST ||
+                projectileResult == CollisionManager.GHOST_COLLISION_LIFE_LOST);
+
+        // reset if the player successfully hits the boss.
+        // acts as a "knockback" and prevents an immediate death on the next frame.
+        boolean resetFromBossHit = (bossResult == CollisionManager.GHOST_COLLISION_GHOST_KILLED);
+
+
+        if (lifeLost || resetFromBossHit) {
+            // Check for Game Over *only if a life was lost*(A boss hit shouldn't trigger game over, just a reset)
+            if (lifeLost && state.lives <= 0) {
                 state.gameOver = true;
                 inputHandler.clear();
                 state.restartDebounceTicks = RESTART_DEBOUNCE_TICKS;
-
             } else {
                 resetPositions();
             }
             return; // Stop update for this frame
         }
 
-        // --- tick animations : update and remove finished ones ---
-        if (!state.animations.isEmpty()){
-            java.util.Iterator<DeathAnimation> it = state.animations.iterator();
-            while (it.hasNext()) {
-                DeathAnimation da = it.next();
-                boolean alive = da.tick();
-                if (!alive){
-                    it.remove();
-                }
-            }
-        }
-
         // --- 4. Check for Level Win ---
         checkLevelCompletion();
+    }
+
+    private void updateBossImage() {
+        if (state.boss == null) return;
+
+        if (state.boss.isReflecting()) {
+            state.boss.image = assetManager.getInvertBoss();
+        } else {
+            state.boss.image = assetManager.getPacmanDownImage();
+        }
     }
 
     /**

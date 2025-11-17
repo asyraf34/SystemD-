@@ -100,13 +100,92 @@ public class CollisionManager {
                     // Ghost wins
                     state.lives--;
                     soundManager.playEffect("audio/life_lost.wav");
-                    if (state.lives == 0) {
+                    if (state.lives <= 0) {
                         state.gameOver = true;
                     }
                     return GHOST_COLLISION_LIFE_LOST;
                 }
             }
         }
+        return GHOST_COLLISION_NONE; // No collision
+    }
+
+    /**
+     * Checks for collisions between Pac-Man and the Boss.
+     * @return an integer constant: 0 (none), 1 (life lost), or 2 (boss hit)
+     */
+    public int checkBossCollisions(PacMan.GameState state, SoundManager soundManager) {
+        if (state.boss == null || !state.pacman.collidesWith(state.boss)) {
+            return GHOST_COLLISION_NONE; // No collision
+        }
+
+        if (state.hasWeapon && state.knifeCount > 0) {
+            // Pac-Man attacked the boss
+            if (state.boss.isReflecting()) {
+                // Boss reflects damage! Pac-Man gets hurt.
+                state.lives--;
+                soundManager.playEffect("audio/life_lost.wav");
+
+                // Consume the knife on reflect
+                state.knifeCount--;
+                if (state.knifeCount == 0) state.hasWeapon = false;
+
+                if (state.lives <= 0) {
+                    state.gameOver = true;
+                }
+                return GHOST_COLLISION_LIFE_LOST; // Life lost
+
+            } else {
+                // Boss takes damage
+                state.knifeCount--;
+                if (state.knifeCount == 0) state.hasWeapon = false;
+
+                boolean bossAlive = state.boss.takeDamage();
+                if (!bossAlive) {
+                    state.score += 1000; // Boss defeated bonus
+                    state.boss = null; // Remove boss
+                }
+                return GHOST_COLLISION_GHOST_KILLED; // Boss was hit
+            }
+        } else {
+            // Pac-Man touched boss without weapon, life lost
+            state.lives--;
+            soundManager.playEffect("audio/life_lost.wav");
+            if (state.lives <= 0) {
+                state.gameOver = true;
+            }
+            return GHOST_COLLISION_LIFE_LOST; // Life lost
+        }
+    }
+
+    /**
+     * Checks for collisions between Pac-Man and projectiles.
+     * @return an integer constant: 0 (none) or 1 (life lost)
+     */
+    public int checkProjectileCollisions(PacMan.GameState state, SoundManager soundManager) {
+        if (state.projectiles == null || state.projectiles.isEmpty()) {
+            return GHOST_COLLISION_NONE;
+        }
+
+        Actor projectileHit = null;
+        for (Actor proj : state.projectiles) {
+            if (state.pacman.collidesWith(proj)) {
+                projectileHit = proj;
+                break; // Found a hit
+            }
+        }
+
+        if (projectileHit != null) {
+            state.projectiles.remove(projectileHit);
+            state.lives--;
+            soundManager.playEffect("audio/life_lost.wav");
+
+            if (state.lives <= 0) {
+                state.gameOver = true;
+            }
+            return GHOST_COLLISION_LIFE_LOST; // Life lost
+        }
+
         return GHOST_COLLISION_NONE; // No collision
     }
 }

@@ -23,6 +23,8 @@ public class AssetManager {
     private Image pacmanDownKnifeImage;
     private Image pacmanLeftKnifeImage;
     private Image pacmanRightKnifeImage;
+    private Image invertboss;
+    private Image projectile;
 
     // Scaled food dimensions
     private int foodWidth;
@@ -51,6 +53,8 @@ public class AssetManager {
         pacmanDownKnifeImage = new ImageIcon(getClass().getResource("/pacmanDown-with-knife.png")).getImage();
         pacmanLeftKnifeImage = new ImageIcon(getClass().getResource("/pacmanLeft-with-knife.png")).getImage();
         pacmanRightKnifeImage = new ImageIcon(getClass().getResource("/pacmanRight-with-knife.png")).getImage();
+        invertboss = new ImageIcon(getClass().getResource("/invertboss.png")).getImage();
+        projectile = new ImageIcon(getClass().getResource("/projectile.png")).getImage();
 
         // Food is loaded separately for scaling
         ImageIcon foodIcon = new ImageIcon(getClass().getResource(FOOD_IMAGE_RESOURCE));
@@ -92,6 +96,8 @@ public class AssetManager {
     public Image getPacmanDownKnifeImage() { return pacmanDownKnifeImage; }
     public Image getPacmanLeftKnifeImage() { return pacmanLeftKnifeImage; }
     public Image getPacmanRightKnifeImage() { return pacmanRightKnifeImage; }
+    public Image getInvertBoss() { return invertboss; }
+    public Image getProjectile() { return projectile; }
 
     public int getFoodWidth() { return foodWidth; }
     public int getFoodHeight() { return foodHeight; }

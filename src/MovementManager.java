@@ -27,6 +27,8 @@ public class MovementManager {
         updatePacmanPosition(state, tileSize);
         checkPacmanBounds(state, map, tileSize);
         moveGhosts(state, map, tileSize);
+        moveBoss(state, map, tileSize);
+        moveProjectiles(state);
 
         return moveStarted;
     }
@@ -176,5 +178,58 @@ public class MovementManager {
                 ghost.updateVelocity();
             }
         }
+    }
+
+    private void moveBoss(PacMan.GameState state, GameMap map, int tileSize) {
+        int boardWidth = map.getColumnCount() * tileSize;
+        int boardHeight = map.getRowCount() * tileSize;
+
+        for (Actor ghost : state.ghosts) {
+            ghost.x += ghost.velocityX;
+            ghost.y += ghost.velocityY;
+
+            boolean collided = false;
+
+            // Wall collision
+            for (Entity wall : state.walls) {
+                if (ghost.collidesWith(wall)) {
+                    ghost.x -= ghost.velocityX;
+                    ghost.y -= ghost.velocityY;
+                    collided = true;
+                    break;
+                }
+            }
+
+            // Screen boundary collision
+            if (ghost.x < 0 || ghost.x + ghost.width > boardWidth ||
+                    ghost.y < 0 || ghost.y + ghost.height > boardHeight) {
+                ghost.x = Math.max(0, Math.min(ghost.x, boardWidth - ghost.width));
+                ghost.y = Math.max(0, Math.min(ghost.y, boardHeight - ghost.height));
+                collided = true;
+            }
+
+            // Pick a new random direction on collision
+            if (collided) {
+                ghost.direction = directions[random.nextInt(directions.length)];
+                ghost.updateVelocity();
+            }
+        }
+    }
+
+    private void moveProjectiles(PacMan.GameState state) {
+        HashSet<Actor> projectilesToRemove = new HashSet<>();
+        for (Actor proj : state.projectiles) {
+            proj.x += proj.velocityX;
+            proj.y += proj.velocityY;
+
+            // Check for wall collision
+            for (Entity wall : state.walls) {
+                if (proj.collidesWith(wall)) {
+                    projectilesToRemove.add(proj);
+                    break;
+                }
+            }
+        }
+        state.projectiles.removeAll(projectilesToRemove);
     }
 }

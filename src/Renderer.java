@@ -58,6 +58,12 @@ public class Renderer {
         for (Actor ghost : state.ghosts) {
             gm.drawImage(ghost.image, ghost.x, ghost.y, ghost.width, ghost.height, null);
         }
+        if (state.boss != null) {
+            g.drawImage(state.boss.image, state.boss.x, state.boss.y, state.boss.width, state.boss.height, null);
+        }
+        for (Actor proj : state.projectiles) {
+            g.drawImage(proj.image, proj.x, proj.y, proj.width, proj.height, null);
+        }
         if (state.pacman != null) {
             gm.drawImage(state.pacman.image, state.pacman.x, state.pacman.y, state.pacman.width, state.pacman.height, null);
         }
@@ -174,6 +180,17 @@ public class Renderer {
                 else { g2.setColor(Color.WHITE); g2.fillRect(x, baseY, iconW, iconH); }
                 x -= iconW + gap;
             }
+        }
+
+        // Boss lives (bottom-center)
+        if (state.boss != null) {
+            g2.setFont(new Font("Arial", Font.BOLD, Math.max(16, tileSize / 2 - 2)));
+            String bossText = "BOSS: " + state.boss.getLives();
+            FontMetrics fm = g2.getFontMetrics();
+            int tx = (boardWidth - fm.stringWidth(bossText)) / 2;
+            int ty = baseY + (iconH - fm.getHeight()) / 2 + fm.getAscent(); // Vertically center with icons
+            g2.setColor(Color.RED);
+            g2.drawString(bossText, tx, ty);
         }
 
         g2.dispose();
