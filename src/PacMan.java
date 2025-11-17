@@ -94,7 +94,7 @@ public class PacMan extends JPanel implements ActionListener {
 
         // --- Entity Speeds ---
         pacmanSpeed = tileSize / 4;
-        ghostSpeed = tileSize / 10;
+        ghostSpeed = tileSize / 4;
         bossSpeed = tileSize / 3;
 
         // --- Load Level 1 ---
