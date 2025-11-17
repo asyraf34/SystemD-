@@ -58,6 +58,14 @@ public class CollisionManager {
      * Uses an Iterator to safely remove a ghost while iterating and creates a DeathAnimation.
      */
     public int checkGhostCollisions(PacMan.GameState state, SoundManager soundManager) {
+        // logger
+        System.out.println(
+                "Boss collision check: boss=" + (state.boss != null) +
+                        " collides=" + (state.boss != null && state.pacman.collidesWith(state.boss)) +
+                        " hasWeapon=" + state.hasWeapon +
+                        " knifeCount=" + state.knifeCount
+        );
+
         Iterator<Actor> it = state.ghosts.iterator();
         while (it.hasNext()) {
             Actor ghost = it.next();
