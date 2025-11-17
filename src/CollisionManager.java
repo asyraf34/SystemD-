@@ -115,6 +115,22 @@ public class CollisionManager {
      * @return an integer constant: 0 (none), 1 (life lost), or 2 (boss hit)
      */
     public int checkBossCollisions(PacMan.GameState state, SoundManager soundManager) {
+        // debugging lines
+        if (state.boss != null && state.pacman.collidesWith(state.boss)){
+            System.out.println("Boss collided");
+        }
+        System.out.println(
+                "Boss collision check: boss=" + (state.boss != null) +
+                        " collides=" + (state.boss != null && state.pacman.collidesWith(state.boss)) +
+                        " hasWeapon=" + state.hasWeapon +
+                        " knifeCount=" + state.knifeCount
+        );
+        if (state.hasWeapon){
+            System.out.println("Reflect mode actived");
+            System.out.println("Boss collision: isReflecting=" + state.boss.isReflecting());
+        }
+        System.out.println("Boss collision: isReflecting=" + state.boss.isReflecting());
+
         if (state.boss == null || !state.pacman.collidesWith(state.boss)) {
             return GHOST_COLLISION_NONE; // No collision
         }

@@ -59,10 +59,10 @@ public class Renderer {
             gm.drawImage(ghost.image, ghost.x, ghost.y, ghost.width, ghost.height, null);
         }
         if (state.boss != null) {
-            g.drawImage(state.boss.image, state.boss.x, state.boss.y, state.boss.width, state.boss.height, null);
+            gm.drawImage(state.boss.image, state.boss.x, state.boss.y, state.boss.width, state.boss.height, null);
         }
         for (Actor proj : state.projectiles) {
-            g.drawImage(proj.image, proj.x, proj.y, proj.width, proj.height, null);
+            gm.drawImage(proj.image, proj.x, proj.y, proj.width, proj.height, null);
         }
         if (state.pacman != null) {
             gm.drawImage(state.pacman.image, state.pacman.x, state.pacman.y, state.pacman.width, state.pacman.height, null);

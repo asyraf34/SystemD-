@@ -249,10 +249,21 @@ public class PacMan extends JPanel implements ActionListener {
     }
 
     /**
-     * Main game logic update method. Now just coordinates the managers.
+     * Main game logic update method. Just coordinates the managers.
      */
     private void updateGame() {
 
+        // --- Tick active death animations ---
+        if (state.animations != null && !state.animations.isEmpty()) {
+            java.util.Iterator<DeathAnimation> it = state.animations.iterator();
+            while (it.hasNext()) {
+                DeathAnimation da = it.next();
+                boolean alive = da.tick();   // update fade / scale / particles / popup
+                if (!alive) {
+                    it.remove();            // finished → remove from list
+                }
+            }
+        }
         // ====== Game Over / Win pause & restart ======
         if (state.gameOver || state.gameWon) {
             // Count debounce

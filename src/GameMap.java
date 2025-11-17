@@ -20,7 +20,7 @@ public class GameMap {
             "X    X       X    X",
             "XXXX XXXX XXXX XXXX",
             "OOOX X       X XOOO",
-            "XXXX X XXBXX X  XXX",
+            "XXXX X XXXXX X  XXX",
             "O       bpo       O",
             "XXXX X XXXXX   XXXX",
             "OOOX X       X XOOO",
