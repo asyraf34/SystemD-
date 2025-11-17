@@ -13,7 +13,6 @@ public class MenuPanel extends JPanel implements ActionListener {
 
         blinkTimer.start();
 
-        // Key listener for ENTER to start game
         addKeyListener(new KeyAdapter() {
             @Override
             public void keyPressed(KeyEvent e) {
@@ -37,7 +36,7 @@ public class MenuPanel extends JPanel implements ActionListener {
         // Title
         g2.setColor(Color.YELLOW);
         g2.setFont(new Font("Arial", Font.BOLD, 72));
-        String title = "PAC - MAN";
+        String title = "MAN - HUNT";
         int titleWidth = g2.getFontMetrics().stringWidth(title);
         g2.drawString(title, (getWidth() - titleWidth) / 2, 200);
 
