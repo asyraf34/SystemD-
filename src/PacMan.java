@@ -60,8 +60,6 @@ public class PacMan extends JPanel implements ActionListener {
         public int interLevelTicks = 0;
         public int nextLevelToStart = 0;
         public int restartDebounceTicks = 0; // prevent auto-restart caused by key
-
-        public java.util.List<DeathAnimation> animations = new java.util.ArrayList<>();
     }
 
     private final GameState state;
@@ -83,11 +81,9 @@ public class PacMan extends JPanel implements ActionListener {
         collisionManager = new CollisionManager();
 
         // --- Board Setup ---
-        int mapW = gameMap.getColumnCount() * tileSize;
-        int mapH = gameMap.getRowCount() * tileSize;
-        int topBarH = Math.max(32, tileSize);
-        int bottomBarH = Math.max(40, (int)(tileSize * 1.2));
-        setPreferredSize(new Dimension(mapW, topBarH + mapH + bottomBarH));
+        int boardWidth = gameMap.getColumnCount() * tileSize;
+        int boardHeight = gameMap.getRowCount() * tileSize;
+        setPreferredSize(new Dimension(boardWidth, boardHeight));
         setBackground(Color.LIGHT_GRAY);
 
         // --- Entity Speeds ---
@@ -118,8 +114,6 @@ public class PacMan extends JPanel implements ActionListener {
         state.foods = new HashSet<>();
         state.ghosts = new HashSet<>();
         state.knives = new HashSet<>();
-
-        state.animations.clear();
 
         boolean[][] wallMatrix = new boolean[gameMap.getRowCount()][gameMap.getColumnCount()];
         String[] currentMap = gameMap.getMapData(state.currentLevel);
@@ -286,9 +280,6 @@ public class PacMan extends JPanel implements ActionListener {
         // --- 2. Handle Collisions ---
         collisionManager.checkFoodCollisions(state, soundManager);
         boolean knifePickedUp = collisionManager.checkKnifeCollisions(state);
-        if (knifePickedUp){
-            soundManager.playEffect("audio/knife_pick.wav");
-        }
         int ghostResult = collisionManager.checkGhostCollisions(state, soundManager);
 
         // --- 3. React to Collisions ---
@@ -309,18 +300,6 @@ public class PacMan extends JPanel implements ActionListener {
                 resetPositions();
             }
             return; // Stop update for this frame
-        }
-
-        // --- tick animations : update and remove finished ones ---
-        if (!state.animations.isEmpty()){
-            java.util.Iterator<DeathAnimation> it = state.animations.iterator();
-            while (it.hasNext()) {
-                DeathAnimation da = it.next();
-                boolean alive = da.tick();
-                if (!alive){
-                    it.remove();
-                }
-            }
         }
 
         // --- 4. Check for Level Win ---
