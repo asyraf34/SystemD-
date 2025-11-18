@@ -7,7 +7,6 @@ import javax.swing.ImageIcon;
 public class AssetManager {
 
     // All images are private
-    private Image backgroundImage;
     private Image wallImage;
     private Image blueGhostImage;
     private Image orangeGhostImage;
@@ -36,7 +35,6 @@ public class AssetManager {
     }
 
     private void loadImages() {
-        backgroundImage = new ImageIcon(getClass().getResource("/background.png")).getImage();
         wallImage = new ImageIcon(getClass().getResource("/wall.png")).getImage();
         blueGhostImage = new ImageIcon(getClass().getResource("/blueGhost.png")).getImage();
         orangeGhostImage = new ImageIcon(getClass().getResource("/orangeGhost.png")).getImage();
@@ -76,7 +74,6 @@ public class AssetManager {
 
     // --- Public Getters ---
 
-    public Image getBackgroundImage() { return backgroundImage; }
     public Image getWallImage() { return wallImage; }
     public Image getBlueGhostImage() { return blueGhostImage; }
     public Image getOrangeGhostImage() { return orangeGhostImage; }
