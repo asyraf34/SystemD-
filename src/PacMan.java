@@ -137,7 +137,7 @@ public class PacMan extends JPanel implements ActionListener {
 
                 switch (tileChar) {
                     case 'B':
-                        state.boss = new Boss(assetManager.getPacmanDownImage(), x, y, tileSize, tileSize, bossSpeed);
+                        state.boss = new Boss(assetManager.getBossImage(), x, y, tileSize, tileSize, bossSpeed);
                         break;
                     case 'X':
                         wallMatrix[r][c] = true;
@@ -311,7 +311,7 @@ public class PacMan extends JPanel implements ActionListener {
             updateBossImage();
 
             // Attempt to fire projectile
-            Actor newProjectile = state.boss.performLongRangeAttack(state.pacman, assetManager.getProjectile());
+            Actor newProjectile = state.boss.performLongRangeAttack(state.pacman, assetManager.getProjectileImage());
             if (newProjectile != null) {
                 state.projectiles.add(newProjectile);
             }
@@ -382,9 +382,9 @@ public class PacMan extends JPanel implements ActionListener {
         if (state.boss == null) return;
 
         if (state.boss.isReflecting()) {
-            state.boss.image = assetManager.getInvertBoss();
+            state.boss.image = assetManager.getBossReflectImage();
         } else {
-            state.boss.image = assetManager.getPacmanDownImage();
+            state.boss.image = assetManager.getBossImage();
         }
     }
 

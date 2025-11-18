@@ -23,8 +23,9 @@ public class AssetManager {
     private Image pacmanDownKnifeImage;
     private Image pacmanLeftKnifeImage;
     private Image pacmanRightKnifeImage;
-    private Image invertboss;
-    private Image projectile;
+    private Image BossImage;
+    private Image BossReflectImage;
+    private Image ProjectileImage;
 
     // Scaled food dimensions
     private int foodWidth;
@@ -53,8 +54,9 @@ public class AssetManager {
         pacmanDownKnifeImage = new ImageIcon(getClass().getResource("/pacmanDown-with-knife.png")).getImage();
         pacmanLeftKnifeImage = new ImageIcon(getClass().getResource("/pacmanLeft-with-knife.png")).getImage();
         pacmanRightKnifeImage = new ImageIcon(getClass().getResource("/pacmanRight-with-knife.png")).getImage();
-        invertboss = new ImageIcon(getClass().getResource("/invertboss.png")).getImage();
-        projectile = new ImageIcon(getClass().getResource("/projectile.png")).getImage();
+        BossImage = new ImageIcon(getClass().getResource("/BossImage.png")).getImage();
+        BossReflectImage = new ImageIcon(getClass().getResource("/BossReflectImage.png")).getImage();
+        ProjectileImage = new ImageIcon(getClass().getResource("/ProjectileImage.png")).getImage();
 
         // Food is loaded separately for scaling
         ImageIcon foodIcon = new ImageIcon(getClass().getResource(FOOD_IMAGE_RESOURCE));
@@ -96,8 +98,9 @@ public class AssetManager {
     public Image getPacmanDownKnifeImage() { return pacmanDownKnifeImage; }
     public Image getPacmanLeftKnifeImage() { return pacmanLeftKnifeImage; }
     public Image getPacmanRightKnifeImage() { return pacmanRightKnifeImage; }
-    public Image getInvertBoss() { return invertboss; }
-    public Image getProjectile() { return projectile; }
+    public Image getBossImage() { return BossImage; }
+    public Image getBossReflectImage() { return BossReflectImage; }
+    public Image getProjectileImage() { return ProjectileImage; }
 
     public int getFoodWidth() { return foodWidth; }
     public int getFoodHeight() { return foodHeight; }
