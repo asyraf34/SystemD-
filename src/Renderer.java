@@ -15,6 +15,7 @@ public class Renderer {
     private int boardWidth;
     private int boardHeight;
 
+
     public Renderer(AssetManager assetManager, GameMap gameMap, int tileSize) {
         this.assetManager = assetManager;
         this.gameMap = gameMap;
@@ -25,23 +26,37 @@ public class Renderer {
      * Main draw method called by PacMan's paintComponent.
      */
     public void drawGame(Graphics g, JPanel panel, PacMan.GameState state) {
-        // Draw background
-        g.drawImage(assetManager.getBackgroundImage(), 0, 0, panel.getWidth(), panel.getHeight(), null);
+        final int boardWidth  = tileSize * gameMap.getColumnCount();
+        final int boardHeight = tileSize * gameMap.getRowCount();
+        final int topBarH     = Math.max(32, tileSize);
+        final int bottomBarH  = Math.max(40, (int)(tileSize * 1.2));
+        final int totalH      = topBarH + boardHeight + bottomBarH;
 
-        // Draw static entities
+        // Full background across panel
+        g.drawImage(assetManager.getBackgroundImage(), 0, 0, boardWidth, totalH, null);
+
+        // Bars background (outside the map)
+        Graphics2D g2 = (Graphics2D) g.create();
+        g2.setColor(new Color(0, 0, 0, 200));
+        g2.fillRect(0, 0, boardWidth, topBarH);                                  // top bar
+        g2.fillRect(0, topBarH + boardHeight, boardWidth, bottomBarH);           // bottom bar
+        g2.dispose();
+
+        // Draw map + entities shifted down by topBarH
+        Graphics2D gm = (Graphics2D) ((Graphics2D) g).create();
+        gm.translate(0, topBarH);
+
         for (Entity wall : state.walls) {
-            g.drawImage(wall.image, wall.x, wall.y, wall.width, wall.height, null);
+            gm.drawImage(wall.image, wall.x, wall.y, wall.width, wall.height, null);
         }
         for (Entity food : state.foods) {
-            g.drawImage(food.image, food.x, food.y, food.width, food.height, null);
+            gm.drawImage(food.image, food.x, food.y, food.width, food.height, null);
         }
         for (Entity knife : state.knives) {
-            g.drawImage(knife.image, knife.x, knife.y, knife.width, knife.height, null);
+            gm.drawImage(knife.image, knife.x, knife.y, knife.width, knife.height, null);
         }
-
-        // Draw actors
         for (Actor ghost : state.ghosts) {
-            g.drawImage(ghost.image, ghost.x, ghost.y, ghost.width, ghost.height, null);
+            gm.drawImage(ghost.image, ghost.x, ghost.y, ghost.width, ghost.height, null);
         }
         if (state.boss != null) {
             gm.drawImage(state.boss.image, state.boss.x, state.boss.y, state.boss.width, state.boss.height, null);
@@ -50,12 +65,24 @@ public class Renderer {
             gm.drawImage(proj.image, proj.x, proj.y, proj.width, proj.height, null);
         }
         if (state.pacman != null) {
-            g.drawImage(state.pacman.image, state.pacman.x, state.pacman.y, state.pacman.width, state.pacman.height, null);
+            gm.drawImage(state.pacman.image, state.pacman.x, state.pacman.y, state.pacman.width, state.pacman.height, null);
+        }
+        gm.dispose();
+
+        // --- Insert animation : draw procedural death animations on top ---
+        if (state.animations != null && !state.animations.isEmpty()) {
+            Graphics2D gAnim = (Graphics2D) g.create();
+            gAnim.translate(0, topBarH);
+            for (DeathAnimation da : state.animations) {
+                da.render(gAnim);
+            }
+            gAnim.dispose();
         }
 
-        // Draw Score/HUD
+        // HUD on the bars (score/level/lives/knives + overlays)
         drawHUD(g, state);
     }
+
 
     /**
      * Draws the heads-up display (score, lives, etc.).
@@ -63,91 +90,96 @@ public class Renderer {
      */
 
     private void drawHUD(Graphics g, PacMan.GameState state) {
-        g.setFont(new Font("Arial", Font.PLAIN, 20));
-        g.setColor(Color.WHITE);
-        String text;
-        boardWidth = tileSize * gameMap.getColumnCount();
-        boardHeight = tileSize * gameMap.getRowCount();
+        final int boardWidth  = tileSize * gameMap.getColumnCount();
+        final int boardHeight = tileSize * gameMap.getRowCount();
+        final int topBarH     = Math.max(32, tileSize);
+        final int bottomBarH  = Math.max(40, (int)(tileSize * 1.2));
+        final int totalH      = topBarH + boardHeight + bottomBarH;
+        final int pad         = Math.max(8, tileSize / 6);
 
-        // Draws Game Over Bannner
-        if (state.gameOver) {
+        // ===== Overlays (dim full screen) =====
+        if (state.gameOver || state.gameWon || state.interLevel) {
             Graphics2D g2 = (Graphics2D) g.create();
             g2.setColor(new Color(0, 0, 0, 140));
-            g2.fillRect(0, 0, boardWidth, boardHeight);
+            g2.fillRect(0, 0, boardWidth, totalH);
 
-            String title = "GAME OVER";
-            g2.setFont(g2.getFont().deriveFont(Font.BOLD, 56f));
+            String title = state.gameOver ? "GAME OVER" : (state.gameWon ? "YOU WIN!" : ("Level " + (state.nextLevelToStart > 0 ? state.nextLevelToStart : state.currentLevel + 1)));
+            float titleSize = state.interLevel ? 56f : 56f;
+
+            g2.setFont(g2.getFont().deriveFont(Font.BOLD, titleSize));
             FontMetrics fm = g2.getFontMetrics();
             int tx = (boardWidth - fm.stringWidth(title)) / 2;
-            int ty = boardHeight / 2 - fm.getHeight();
+            int ty = topBarH + boardHeight / 2 - fm.getHeight();
             g2.setColor(Color.WHITE);
             g2.drawString(title, tx, ty);
 
-            // Subtext
-            String sub = "Press any key to restart";
-            g2.setFont(g2.getFont().deriveFont(Font.PLAIN, 28f));
-            FontMetrics fm2 = g2.getFontMetrics();
-            int sx = (boardWidth - fm2.stringWidth(sub)) / 2;
-            int sy = ty + fm.getHeight() + 40;
-            g2.drawString(sub, sx, sy);
+            if (!state.interLevel) {
+                String sub = "Press any key to restart";
+                g2.setFont(g2.getFont().deriveFont(Font.PLAIN, 28f));
+                FontMetrics fm2 = g2.getFontMetrics();
+                int sx = (boardWidth - fm2.stringWidth(sub)) / 2;
+                int sy = ty + fm.getHeight() + 40;
+                g2.drawString(sub, sx, sy);
+            }
+
             g2.dispose();
-            return;
+            if (!state.interLevel) return; // keep banner visible; skip bars text
+            // if interLevel, still draw top/bottom bar content below
         }
 
-        // Draws Game Won Banner
-        if (state.gameWon) {
-            Graphics2D g2 = (Graphics2D) g.create();
-            g2.setColor(new Color(0, 0, 0, 140));
-            g2.fillRect(0, 0, boardWidth, boardHeight);
+        Graphics2D g2 = (Graphics2D) g.create();
 
-            String title = "YOU WIN!";
-            g2.setFont(g2.getFont().deriveFont(Font.BOLD, 56f));
+        // ===== TOP BAR =====
+        // Score (top-left) – number only
+        {
+            g2.setFont(new Font("Arial", Font.BOLD, Math.max(18, tileSize / 2)));
+            String scoreText = String.valueOf(state.score);
             FontMetrics fm = g2.getFontMetrics();
-            int tx = (boardWidth - fm.stringWidth(title)) / 2;
-            int ty = boardHeight / 2 - fm.getHeight();
+            int tx = pad;
+            int ty = (topBarH - fm.getHeight()) / 2 + fm.getAscent();
             g2.setColor(Color.WHITE);
-            g2.drawString(title, tx, ty);
-
-            String sub = "Press any key to restart";
-            g2.setFont(g2.getFont().deriveFont(Font.PLAIN, 28f));
-            FontMetrics fm2 = g2.getFontMetrics();
-            int sx = (boardWidth - fm2.stringWidth(sub)) / 2;
-            int sy = ty + fm.getHeight() + 40;
-            g2.drawString(sub, sx, sy);
-            g2.dispose();
-            return;
+            g2.drawString(scoreText, tx, ty);
         }
 
-        if (state.interLevel) {
-            // Dim background
-            Graphics2D g2d = (Graphics2D) g;
-            Composite old = g2d.getComposite();
-            g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.6f));
-            g2d.setColor(Color.black);
-            g2d.fillRect(0, 0, tileSize * gameMap.getColumnCount(), tileSize * gameMap.getRowCount());
-            g2d.setComposite(old);
-
-            // Banner “LEVEL X”
-            String banner = "LEVEL " + state.nextLevelToStart;
-            Font oldFont = g.getFont();
-            g.setFont(oldFont.deriveFont(Font.BOLD, 56f));
-            FontMetrics fm = g.getFontMetrics();
-            int x = (tileSize * gameMap.getColumnCount() - fm.stringWidth(banner)) / 2;
-            int y = (tileSize * gameMap.getRowCount()) / 2;
-
-            g.setColor(Color.WHITE);
-            g.drawString(banner, x, y);
-            g.setFont(oldFont);
-            return; // Don’t draw the normal HUD underneath
+        // Level (top-right) – "Level N"
+        {
+            g2.setFont(new Font("Arial", Font.BOLD, Math.max(18, tileSize / 2)));
+            String levelText = "Level " + state.currentLevel;
+            FontMetrics fm = g2.getFontMetrics();
+            int tx = boardWidth - pad - fm.stringWidth(levelText);
+            int ty = (topBarH - fm.getHeight()) / 2 + fm.getAscent();
+            g2.setColor(Color.WHITE);
+            g2.drawString(levelText, tx, ty);
         }
 
-        if (state.gameWon) {
-            text = "You Win! Final Score: " + state.score;
-        } else if (state.gameOver) {
-            text = "Game Over: " + state.score;
-        } else {
-            text = String.format("Level: %d Lives: x%d Score: %d Knives: %d",
-                    state.currentLevel, state.lives, state.score, state.knifeCount);
+        // ===== BOTTOM BAR =====
+        int iconH = (int) (bottomBarH * 0.8);   // BIGGER icons
+        int iconW = iconH;
+        int gap   = Math.max(6, tileSize / 6);
+        int baseY = topBarH + boardHeight + (bottomBarH - iconH) / 2;
+
+        // Lives (bottom-left) – icons only
+        {
+            Image lifeIcon = assetManager.getPacmanRightImage();
+            int count = Math.max(0, state.lives);
+            int x = pad;
+            for (int i = 0; i < count; i++) {
+                if (lifeIcon != null) g2.drawImage(lifeIcon, x, baseY, iconW, iconH, null);
+                else { g2.setColor(Color.WHITE); g2.fillOval(x, baseY, iconW, iconH); }
+                x += iconW + gap;
+            }
+        }
+
+        // Knives (bottom-right) – icons only
+        {
+            Image knifeIcon = assetManager.getKnifeImage();
+            int count = Math.max(0, state.knifeCount);
+            int x = boardWidth - pad - iconW;
+            for (int i = 0; i < count; i++) {
+                if (knifeIcon != null) g2.drawImage(knifeIcon, x, baseY, iconW, iconH, null);
+                else { g2.setColor(Color.WHITE); g2.fillRect(x, baseY, iconW, iconH); }
+                x -= iconW + gap;
+            }
         }
 
         // Boss lives (bottom-center)
@@ -166,7 +198,6 @@ public class Renderer {
 
     // -----------------------------------------------------------------
     //  WALL TEXTURE REFACTOR
-    //  The "Bloody hell" method is now broken into smaller parts.
     // -----------------------------------------------------------------
 
     /**
