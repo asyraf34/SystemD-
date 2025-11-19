@@ -1,4 +1,6 @@
 import java.util.HashSet;
+import java.util.Iterator;
+import java.awt.Image;
 
 /**
  * Manages all collision detection for the game.
@@ -32,20 +34,19 @@ public class CollisionManager {
     /**
      * Checks for collisions between Pac-Man and knives.
      * @return true if a knife was picked up (image update needed)
+     *
+     * Use Iterator  to safely remove items while iterating.
      */
     public boolean checkKnifeCollisions(PacMan.GameState state) {
-        Entity knifeCollected = null;
-        for (Entity knife : state.knives) {
+        Iterator<Entity> it = state.knives.iterator();
+        while (it.hasNext()) {
+            Entity knife = it.next();
             if (state.pacman.collidesWith(knife)) {
-                knifeCollected = knife;
+                it.remove();
                 state.hasWeapon = true;
                 state.knifeCount++;
-                break;
+                return true; // Knife was picked up
             }
-        }
-        if (knifeCollected != null) {
-            state.knives.remove(knifeCollected);
-            return true; // Knife was picked up
         }
         return false; // No knife picked up
     }
@@ -53,6 +54,8 @@ public class CollisionManager {
     /**
      * Checks for collisions between Pac-Man and ghosts.
      * @return an integer constant: 0 (none), 1 (life lost), or 2 (ghost killed)
+     *
+     * Uses an Iterator to safely remove a ghost while iterating and creates a DeathAnimation.
      */
     public int checkGhostCollisions(PacMan.GameState state, SoundManager soundManager) {
         // logger
@@ -67,18 +70,40 @@ public class CollisionManager {
         while (it.hasNext()) {
             Actor ghost = it.next();
             if (state.pacman.collidesWith(ghost)) {
+
                 if (state.hasWeapon && state.knifeCount > 0) {
-                    // Pac-Man wins
+                    // Pac-Man wins: consume knife
                     state.knifeCount--;
-                    ghostToRemove = ghost;
                     if (state.knifeCount == 0) {
                         state.hasWeapon = false;
                     }
-                    // Don't break; Pac-Man can kill multiple ghosts in one frame
-                    if (ghostToRemove != null) {
-                        state.ghosts.remove(ghostToRemove);
+
+                    // Snapshot position + image and create visual animation (non-blocking)
+                    Image snap = ghost.image;
+                    int tx = ghost.x;
+                    int ty = ghost.y;
+                    int tw = ghost.width;
+                    int th = ghost.height;
+                    int totalTicks = 30; //
+                    String scoreText = "~";
+
+                    try {
+                        DeathAnimation anim = new DeathAnimation(snap, tx, ty, tw, th, totalTicks, scoreText);
+                        if (state.animations != null) {
+                            state.animations.add(anim);
+                        }
+                    } catch (Throwable t) {
+                        // If DeathAnimation isn't available or fails, ignore; still remove the ghost.
+                        System.err.println("DeathAnimation creation failed: " + t.getMessage());
                     }
-                    return GHOST_COLLISION_GHOST_KILLED; // Ghost was killed
+
+                    // remove from ghosts safely
+                    it.remove();
+
+                    // play kill sound
+                    soundManager.playEffect("audio/kill.wav");
+
+                    return GHOST_COLLISION_GHOST_KILLED;
                 } else {
                     // Ghost wins
                     state.lives--;
@@ -86,7 +111,7 @@ public class CollisionManager {
                     if (state.lives <= 0) {
                         state.gameOver = true;
                     }
-                    return GHOST_COLLISION_LIFE_LOST; // Life was lost
+                    return GHOST_COLLISION_LIFE_LOST;
                 }
             }
         }
