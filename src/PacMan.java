@@ -62,6 +62,8 @@ public class PacMan extends JPanel implements ActionListener {
         public int interLevelTicks = 0;
         public int nextLevelToStart = 0;
         public int restartDebounceTicks = 0; // prevent auto-restart caused by key
+
+        public java.util.List<DeathAnimation> animations = new java.util.ArrayList<>();
     }
 
     private final GameState state;
@@ -83,9 +85,11 @@ public class PacMan extends JPanel implements ActionListener {
         collisionManager = new CollisionManager();
 
         // --- Board Setup ---
-        int boardWidth = gameMap.getColumnCount() * tileSize;
-        int boardHeight = gameMap.getRowCount() * tileSize;
-        setPreferredSize(new Dimension(boardWidth, boardHeight));
+        int mapW = gameMap.getColumnCount() * tileSize;
+        int mapH = gameMap.getRowCount() * tileSize;
+        int topBarH = Math.max(32, tileSize);
+        int bottomBarH = Math.max(40, (int)(tileSize * 1.2));
+        setPreferredSize(new Dimension(mapW, topBarH + mapH + bottomBarH));
         setBackground(Color.LIGHT_GRAY);
 
         // --- Entity Speeds ---
@@ -118,6 +122,8 @@ public class PacMan extends JPanel implements ActionListener {
         state.knives = new HashSet<>();
         state.projectiles = new HashSet<>();
         state.boss = null;
+
+        state.animations.clear();
 
         boolean[][] wallMatrix = new boolean[gameMap.getRowCount()][gameMap.getColumnCount()];
         String[] currentMap = gameMap.getMapData(state.currentLevel);
