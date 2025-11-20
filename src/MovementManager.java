@@ -8,7 +8,7 @@ public class MovementManager {
 
     public MovementManager() {}
 
-    public boolean updateActorPositions(PacMan.GameState state, InputHandler input, GameMap map, SoundManager sound, int tileSize) {
+    public boolean updateActorPositions(GameState state, InputHandler input, GameMap map, SoundManager sound, int tileSize) {
         boolean moveStarted = handlePlayerInput(state, input, sound, tileSize);
 
         updatePacmanPosition(state);
@@ -27,7 +27,7 @@ public class MovementManager {
         return moveStarted;
     }
 
-    private boolean handlePlayerInput(PacMan.GameState state, InputHandler input, SoundManager sound, int tileSize) {
+    private boolean handlePlayerInput(GameState state, InputHandler input, SoundManager sound, int tileSize) {
         if (state.pacman.isMoving) return false;
 
         Direction nextDir = input.getDirection();
@@ -37,7 +37,7 @@ public class MovementManager {
         return false;
     }
 
-    private boolean attemptMove(PacMan.GameState state, Direction dir, SoundManager sound, int tileSize) {
+    private boolean attemptMove(GameState state, Direction dir, SoundManager sound, int tileSize) {
         int dx = dir.getDx(tileSize);
         int dy = dir.getDy(tileSize);
 
@@ -58,7 +58,7 @@ public class MovementManager {
         return true;
     }
 
-    private void updatePacmanPosition(PacMan.GameState state) {
+    private void updatePacmanPosition(GameState state) {
         if (!state.pacman.isMoving) return;
 
         Actor pacman = state.pacman;
@@ -78,7 +78,7 @@ public class MovementManager {
         }
     }
 
-    private void checkPacmanBounds(PacMan.GameState state, GameMap map, int tileSize) {
+    private void checkPacmanBounds(GameState state, GameMap map, int tileSize) {
         int boardW = map.getColumnCount() * tileSize;
         int boardH = map.getRowCount() * tileSize;
         Actor p = state.pacman;
@@ -128,7 +128,7 @@ public class MovementManager {
         }
     }
 
-    private void moveProjectiles(PacMan.GameState state) {
+    private void moveProjectiles(GameState state) {
         HashSet<Actor> toRemove = new HashSet<>();
         for (Actor proj : state.projectiles) {
             proj.x += proj.velocityX;

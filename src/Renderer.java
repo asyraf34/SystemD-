@@ -28,7 +28,7 @@ public class Renderer {
         this.totalH      = topBarH + boardHeight + bottomBarH;
     }
 
-    public void drawGame(Graphics g, JPanel panel, PacMan.GameState state) {
+    public void drawGame(Graphics g, JPanel panel, GameState state) {
         // 1. Draw Backgrounds (uses pre-calculated fields)
         g.drawImage(assetManager.getBackgroundImage(), 0, 0, boardWidth, totalH, null);
         drawBarBackgrounds(g);
@@ -61,7 +61,7 @@ public class Renderer {
         g2.dispose();
     }
 
-    private void drawEntities(Graphics2D g2d, PacMan.GameState state) {
+    private void drawEntities(Graphics2D g2d, GameState state) {
         for (Entity wall : state.walls)       drawEntity(g2d, wall);
         for (Entity food : state.foods)       drawEntity(g2d, food);
         for (Entity knife : state.knives)     drawEntity(g2d, knife);
@@ -78,7 +78,7 @@ public class Renderer {
         if (a.image != null) g.drawImage(a.image, a.x, a.y, a.width, a.height, null);
     }
 
-    private void drawHUD(Graphics g, PacMan.GameState state) {
+    private void drawHUD(Graphics g, GameState state) {
         int pad = Math.max(8, tileSize / 6);
 
         // Overlays (Game Over / Level Up)
