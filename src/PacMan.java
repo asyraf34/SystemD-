@@ -48,9 +48,13 @@ public class PacMan extends JPanel {
         // Check for Restart
         Timer gameLoop = new Timer(50, e -> {
             // Check for Level Transition completion
-            if (state.interLevel && state.interLevelTicks == 0 && state.currentLevel != state.nextLevelToStart) {
-                loadLevel();
+            // NEW: Check if flag is set and timer is finished
+            if (state.interLevel && state.interLevelTicks <= 0) {
+                state.currentLevel = state.nextLevelToStart; // 1. Update Level Index
+                loadLevel();                                 // 2. Load New Map & Entities
+                state.interLevel = false;                    // 3. Clear Transition Flag
             }
+
             // Check for Restart
             if ((state.gameOver || state.gameWon) && state.restartDebounceTicks == 0 && inputHandler.anyKeyPressed()) {
                 restartGame();

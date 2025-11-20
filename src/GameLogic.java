@@ -32,10 +32,8 @@ public class GameLogic {
 
         // 3. Inter-Level Logic (Wait for timer)
         if (state.interLevel) {
-            state.interLevelTicks--;
-            if (state.interLevelTicks <= 0) {
-                state.interLevel = false;
-                state.currentLevel = state.nextLevelToStart;
+            if (state.interLevelTicks > 0) {
+                state.interLevelTicks--;
             }
             return;
         }
