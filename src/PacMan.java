@@ -8,12 +8,10 @@ public class PacMan extends JPanel {
     private final GameState state;
     private final GameLogic logic;
     private final GameView view;
-    private final Timer gameLoop;
 
     // Helpers
     private final AssetManager assetManager;
     private final GameMap gameMap;
-    private final SoundManager soundManager;
     private final InputHandler inputHandler;
     private final Renderer renderer;
 
@@ -24,12 +22,14 @@ public class PacMan extends JPanel {
         state = new GameState();
         gameMap = new GameMap();
         assetManager = new AssetManager(GameConstants.TILE_SIZE);
-        soundManager = new SoundManager();
+        SoundManager soundManager = new SoundManager();
         inputHandler = new InputHandler();
         renderer = new Renderer(assetManager, gameMap, GameConstants.TILE_SIZE);
 
         // 2. Initialize Logic & View
         logic = new GameLogic(state, gameMap, inputHandler, soundManager, assetManager);
+        addKeyListener(inputHandler);
+        setFocusable(true);
 
         int mapW = gameMap.getColumnCount() * GameConstants.TILE_SIZE;
         int mapH = gameMap.getRowCount() * GameConstants.TILE_SIZE;
@@ -44,10 +44,11 @@ public class PacMan extends JPanel {
 
         // 4. Start Loop
         soundManager.playBackgroundLoop(GameConstants.SOUND_BG);
-        gameLoop = new Timer(50, e -> {
+        // Check for Level Transition completion
+        // Check for Restart
+        Timer gameLoop = new Timer(50, e -> {
             // Check for Level Transition completion
             if (state.interLevel && state.interLevelTicks == 0 && state.currentLevel != state.nextLevelToStart) {
-                // The logic flagged interLevel done, so we load the new map
                 loadLevel();
             }
             // Check for Restart
