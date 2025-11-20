@@ -48,8 +48,7 @@ public class DeathAnimation {
     private int ticksRemaining;
     private int popupTicksRemaining;
     // Using concrete ArrayList for older Java compiler safety
-    private final ArrayList<Particle> particles = new ArrayList<Particle>();
-
+    private final ArrayList<Particle> particles = new ArrayList<>();
     // =============================================================
     // 3. INNER CLASS: PARTICLE
     // =============================================================

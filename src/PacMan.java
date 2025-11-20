@@ -3,7 +3,8 @@ import java.awt.event.*;
 import java.util.HashSet;
 import java.util.Random;
 import javax.swing.*;
-
+import java.util.ArrayList;
+import java.util.List;
 /**
  * Main game class. Acts as the "Conductor" for the game.
  * It owns the game state and coordinates the other managers (Renderer,
@@ -11,7 +12,7 @@ import javax.swing.*;
  * Its complexity is now very low, as all logic is delegated.
  */
 public class PacMan extends JPanel implements ActionListener {
-
+    private static final long serialVersionUID = 1L;
     private final Direction[] directions = { Direction.UP, Direction.DOWN, Direction.LEFT, Direction.RIGHT };
 
     // --- Core Components ---
@@ -52,7 +53,7 @@ public class PacMan extends JPanel implements ActionListener {
         public int nextLevelToStart = 0;
         public int restartDebounceTicks = 0; // prevent auto-restart caused by key
 
-        public java.util.List<DeathAnimation> animations = new java.util.ArrayList<>();
+        public List<DeathAnimation> animations = new ArrayList<>();
     }
 
     private final GameState state;
@@ -218,11 +219,10 @@ public class PacMan extends JPanel implements ActionListener {
         String[] currentMap = gameMap.getMapData(state.currentLevel);
         spawnGhosts(currentMap);
 
-        // --- ADD THESE LINES ---
         if (state.boss != null) {
             state.boss.reset(); // Reset boss to its start position
         }
-        inputHandler.clear(); // CRITICAL: Stop player from moving immediately
+        inputHandler.clear(); //Stop player from moving immediately
     }
 
     // --- Main Game Loop ---

@@ -8,8 +8,6 @@ public class Actor extends Entity {
 
     public final int startX;
     public final int startY;
-
-    // CHANGED: Now uses the Enum
     public Direction direction = Direction.NONE;
 
     public int velocityX = 0;
@@ -47,7 +45,7 @@ public class Actor extends Entity {
         this.targetY = this.startY;
         this.velocityX = 0;
         this.velocityY = 0;
-        this.direction = Direction.NONE; // CHANGED
+        this.direction = Direction.NONE;
         this.isMoving = false;
     }
 }
