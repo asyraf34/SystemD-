@@ -12,12 +12,7 @@ import javax.swing.*;
  */
 public class PacMan extends JPanel implements ActionListener {
 
-    // --- Game Configuration ---
-    private final int tileSize = 32;
-    private final int pacmanSpeed;
-    private final int ghostSpeed;
-    private final int bossSpeed;
-    private final char[] directions = {'U', 'D', 'L', 'R'};
+    private final Direction[] directions = { Direction.UP, Direction.DOWN, Direction.LEFT, Direction.RIGHT };
 
     // --- Core Components ---
     private final AssetManager assetManager;
@@ -31,12 +26,6 @@ public class PacMan extends JPanel implements ActionListener {
     private final Renderer renderer;
     private final MovementManager movementManager;
     private final CollisionManager collisionManager;
-
-    // === Inter-level banner state ===
-    private static final int INTERLEVEL_TICKS = 15; // ~3s if 50ms per tick
-
-    // === Game Won & Game Over banner state ===
-    private static final int RESTART_DEBOUNCE_TICKS = 10;
 
     // --- Game State (Inner Class) ---
     /**
@@ -74,35 +63,29 @@ public class PacMan extends JPanel implements ActionListener {
         state.currentLevel = 1;
 
         // --- Initialize Core Components ---
-        assetManager = new AssetManager(tileSize);
+        assetManager = new AssetManager(GameConstants.TILE_SIZE);
         gameMap = new GameMap();
         soundManager = new SoundManager();
 
         // --- Initialize New Managers ---
         inputHandler = new InputHandler();
-        renderer = new Renderer(assetManager, gameMap, tileSize);
-        movementManager = new MovementManager(directions); // Pass directions
+        renderer = new Renderer(assetManager, gameMap, GameConstants.TILE_SIZE);
+        movementManager = new MovementManager();
         collisionManager = new CollisionManager();
 
         // --- Board Setup ---
-        int mapW = gameMap.getColumnCount() * tileSize;
-        int mapH = gameMap.getRowCount() * tileSize;
-        int topBarH = Math.max(32, tileSize);
-        int bottomBarH = Math.max(40, (int)(tileSize * 1.2));
+        int mapW = gameMap.getColumnCount() * GameConstants.TILE_SIZE;
+        int mapH = gameMap.getRowCount() * GameConstants.TILE_SIZE;
+        int topBarH = Math.max(32, GameConstants.TILE_SIZE);
+        int bottomBarH = Math.max(40, (int)(GameConstants.TILE_SIZE * 1.2));
         setPreferredSize(new Dimension(mapW, topBarH + mapH + bottomBarH));
         setBackground(Color.LIGHT_GRAY);
 
-        // --- Entity Speeds ---
-        pacmanSpeed = tileSize / 4;
-        ghostSpeed = tileSize / 6;
-        bossSpeed = tileSize / 3;
-
         // --- Load Level 1 ---
         loadMap();
-        spawnKnives(3);
-
+        spawnKnives(GameConstants.STARTING_KNIVES);
         // --- Start Game ---
-        soundManager.playBackgroundLoop("audio/background.wav");
+        soundManager.playBackgroundLoop(GameConstants.SOUND_BG);
         gameLoop = new Timer(50, this); // 20fps
         gameLoop.start();
 
@@ -132,22 +115,22 @@ public class PacMan extends JPanel implements ActionListener {
             String row = currentMap[r];
             for (int c = 0; c < gameMap.getColumnCount(); c++) {
                 char tileChar = row.charAt(c);
-                int x = c * tileSize;
-                int y = r * tileSize;
+                int x = c * GameConstants.TILE_SIZE;
+                int y = r * GameConstants.TILE_SIZE;
 
                 switch (tileChar) {
                     case 'B':
-                        state.boss = new Boss(assetManager.getBossImage(), x, y, tileSize, tileSize, bossSpeed);
+                        state.boss = new Boss(assetManager.getBossImage(), x, y, GameConstants.TILE_SIZE, GameConstants.TILE_SIZE, GameConstants.SPEED_BOSS);
                         break;
                     case 'X':
                         wallMatrix[r][c] = true;
                         break;
                     case 'P':
-                        state.pacman = new Actor(assetManager.getPacmanRightImage(), x, y, tileSize, tileSize, pacmanSpeed);
+                        state.pacman = new Actor(assetManager.getPacmanRightImage(), x, y, GameConstants.TILE_SIZE, GameConstants.TILE_SIZE, GameConstants.SPEED_PACMAN);
                         break;
                     case ' ':
-                        int foodX = x + (tileSize - assetManager.getFoodWidth()) / 2;
-                        int foodY = y + (tileSize - assetManager.getFoodHeight()) / 2;
+                        int foodX = x + (GameConstants.TILE_SIZE - assetManager.getFoodWidth()) / 2;
+                        int foodY = y + (GameConstants.TILE_SIZE - assetManager.getFoodHeight()) / 2;
                         state.foods.add(new Entity(assetManager.getFoodImage(), foodX, foodY, assetManager.getFoodWidth(), assetManager.getFoodHeight()));
                         break;
                 }
@@ -160,10 +143,10 @@ public class PacMan extends JPanel implements ActionListener {
         for (int r = 0; r < gameMap.getRowCount(); r++) {
             for (int c = 0; c < gameMap.getColumnCount(); c++) {
                 if (wallMatrix[r][c]) {
-                    int x = c * tileSize;
-                    int y = r * tileSize;
+                    int x = c * GameConstants.TILE_SIZE;
+                    int y = r * GameConstants.TILE_SIZE;
                     Image wallImg = renderer.createWallTexture(wallMatrix, r, c);
-                    state.walls.add(new Entity(wallImg, x, y, tileSize, tileSize));
+                    state.walls.add(new Entity(wallImg, x, y, GameConstants.TILE_SIZE, GameConstants.TILE_SIZE));
                 }
             }
         }
@@ -174,14 +157,14 @@ public class PacMan extends JPanel implements ActionListener {
      */
     private void spawnGhosts(String[] currentMap) {
         state.ghosts.clear();
-        int speed = (state.currentLevel == 3) ? bossSpeed : ghostSpeed;
+        int speed = (state.currentLevel == 3) ? GameConstants.SPEED_BOSS : GameConstants.SPEED_GHOST;
 
         for (int r = 0; r < gameMap.getRowCount(); r++) {
             String row = currentMap[r];
             for (int c = 0; c < gameMap.getColumnCount(); c++) {
                 char tileChar = row.charAt(c);
-                int x = c * tileSize;
-                int y = r * tileSize;
+                int x = c * GameConstants.TILE_SIZE;
+                int y = r * GameConstants.TILE_SIZE;
 
                 Image ghostImage = null;
                 if (tileChar == 'b') ghostImage = assetManager.getBlueGhostImage();
@@ -190,8 +173,10 @@ public class PacMan extends JPanel implements ActionListener {
                 else if (tileChar == 'r') ghostImage = assetManager.getRedGhostImage();
 
                 if (ghostImage != null) {
-                    Actor ghost = new Actor(ghostImage, x, y, tileSize, tileSize, speed);
+                    Actor ghost = new Actor(ghostImage, x, y, GameConstants.TILE_SIZE, GameConstants.TILE_SIZE, speed);
+
                     ghost.direction = directions[random.nextInt(directions.length)];
+
                     ghost.updateVelocity();
                     state.ghosts.add(ghost);
                 }
@@ -213,9 +198,9 @@ public class PacMan extends JPanel implements ActionListener {
             Entity chosenFood = foodArray[index];
 
             if (state.foods.contains(chosenFood)) {
-                int knifeX = chosenFood.x + (chosenFood.width - (tileSize / 2)) / 2;
-                int knifeY = chosenFood.y + (chosenFood.height - (tileSize / 2)) / 2;
-                state.knives.add(new Entity(assetManager.getKnifeImage(), knifeX, knifeY, tileSize / 2, tileSize / 2));
+                int knifeX = chosenFood.x + (chosenFood.width - (GameConstants.TILE_SIZE / 2)) / 2;
+                int knifeY = chosenFood.y + (chosenFood.height - (GameConstants.TILE_SIZE / 2)) / 2;
+                state.knives.add(new Entity(assetManager.getKnifeImage(), knifeX, knifeY, GameConstants.TILE_SIZE / 2, GameConstants.TILE_SIZE / 2));
                 state.foods.remove(chosenFood);
                 created++;
             }
@@ -319,7 +304,7 @@ public class PacMan extends JPanel implements ActionListener {
 
         // --- 1. Handle Movement ---
         // moveStarted is true if Pac-Man just started a new move
-        boolean moveStarted = movementManager.updateActorPositions(state, inputHandler, gameMap, soundManager, tileSize);
+        boolean moveStarted = movementManager.updateActorPositions(state, inputHandler, gameMap, soundManager, GameConstants.TILE_SIZE);
 
         // --- 2. Handle Collisions ---
         collisionManager.checkFoodCollisions(state, soundManager);
@@ -367,7 +352,7 @@ public class PacMan extends JPanel implements ActionListener {
             if (lifeLost && state.lives <= 0) {
                 state.gameOver = true;
                 inputHandler.clear();
-                state.restartDebounceTicks = RESTART_DEBOUNCE_TICKS;
+                state.restartDebounceTicks = GameConstants.TIMER_RESTART;
             } else {
                 resetPositions();
             }
@@ -399,15 +384,13 @@ public class PacMan extends JPanel implements ActionListener {
             if (state.nextLevelToStart > gameMap.getLevelCount()) {
                 state.gameWon = true;
                 inputHandler.clear();
-                state.restartDebounceTicks = RESTART_DEBOUNCE_TICKS;
-
+                state.restartDebounceTicks = GameConstants.TIMER_RESTART;
                 return;
             }
 
             // Enter inter-level mode
             state.interLevel = true;
-            state.interLevelTicks = INTERLEVEL_TICKS;
-
+            state.interLevelTicks = GameConstants.TIMER_INTERLEVEL;
             // clear any held keys so mafia doesn't move right away
             inputHandler.clear();
         }
@@ -416,7 +399,7 @@ public class PacMan extends JPanel implements ActionListener {
         // Reset
         state.currentLevel = 1;
         state.score = 0;
-        state.lives = 3;
+        state.lives = GameConstants.MAX_LIVES;
         state.hasWeapon = false;
         state.knifeCount = 0;
         state.gameOver = false;
@@ -430,7 +413,7 @@ public class PacMan extends JPanel implements ActionListener {
         // Recreate level
         loadMap();
         resetPositions();
-        spawnKnives(3);
+        spawnKnives(GameConstants.STARTING_KNIVES);
     }
 
     // --- Rendering (Delegated) ---
@@ -449,22 +432,23 @@ public class PacMan extends JPanel implements ActionListener {
      */
     private void updatePacmanImage() {
         Actor pacman = state.pacman;
-        if (state.hasWeapon && state.knifeCount > 0) {
-            switch (pacman.direction) {
-                case 'U': pacman.image = assetManager.getPacmanUpKnifeImage(); break;
-                case 'D': pacman.image = assetManager.getPacmanDownKnifeImage(); break;
-                case 'L': pacman.image = assetManager.getPacmanLeftKnifeImage(); break;
-                case 'R': pacman.image = assetManager.getPacmanRightKnifeImage(); break;
-                default:  pacman.image = assetManager.getPacmanRightKnifeImage(); break;
-            }
-        } else {
-            switch (pacman.direction) {
-                case 'U': pacman.image = assetManager.getPacmanUpImage(); break;
-                case 'D': pacman.image = assetManager.getPacmanDownImage(); break;
-                case 'L': pacman.image = assetManager.getPacmanLeftImage(); break;
-                case 'R': pacman.image = assetManager.getPacmanRightImage(); break;
-                default:  pacman.image = assetManager.getPacmanRightImage(); break;
-            }
+        boolean hasKnife = (state.hasWeapon && state.knifeCount > 0);
+
+        // Now using the Enum in the switch statement
+        switch (pacman.direction) {
+            case UP:
+                pacman.image = hasKnife ? assetManager.getPacmanUpKnifeImage() : assetManager.getPacmanUpImage();
+                break;
+            case DOWN:
+                pacman.image = hasKnife ? assetManager.getPacmanDownKnifeImage() : assetManager.getPacmanDownImage();
+                break;
+            case LEFT:
+                pacman.image = hasKnife ? assetManager.getPacmanLeftKnifeImage() : assetManager.getPacmanLeftImage();
+                break;
+            case RIGHT:
+            case NONE: // Handle default/start case
+                pacman.image = hasKnife ? assetManager.getPacmanRightKnifeImage() : assetManager.getPacmanRightImage();
+                break;
         }
     }
 }

@@ -3,14 +3,13 @@ import java.awt.Image;
 public class Boss extends Actor {
 
     // --- Configuration ---
-    private static final int STARTING_LIVES = 3;
+    private static final int STARTING_LIVES = GameConstants.BOSS_LIVES;
     private static final int PROJECTILE_SIZE = 16;
-    private static final int SPEED_BONUS = 2;
 
     // State Definitions (Duration, CanTakeDamage, CanAttack)
     private enum BossState {
-        NORMAL(200, true, true),    // 10 seconds
-        REFLECT(100, false, false); // 5 seconds
+        NORMAL(GameConstants.TIMER_BOSS_NORMAL, true, true),
+        REFLECT(GameConstants.TIMER_BOSS_REFLECT, false, false);
 
         final int duration;
         final boolean vulnerable;
@@ -76,19 +75,18 @@ public class Boss extends Actor {
     public Actor performLongRangeAttack(Actor target, Image projectileImg) {
         if (!currentState.canAttack || attackCooldown > 0) return null;
 
-        attackCooldown = 40; // Reset cooldown (2 seconds)
+        attackCooldown = GameConstants.TIMER_BOSS_ATTACK; // Reset cooldown (2 seconds)
         return spawnProjectile(target, projectileImg);
     }
 
     private Actor spawnProjectile(Actor target, Image img) {
-        int pSpeed = this.speed + SPEED_BONUS;
-
+        int pSpeed = this.speed + GameConstants.SPEED_PROJECTILE_BONUS;
         // Center projectile on Boss
         int px = this.x + (this.width - PROJECTILE_SIZE) / 2;
         int py = this.y + (this.height - PROJECTILE_SIZE) / 2;
 
         Actor proj = new Actor(img, px, py, PROJECTILE_SIZE, PROJECTILE_SIZE, pSpeed);
-        proj.direction = 'P'; // 'P' for Projectile
+        proj.direction = Direction.NONE;
 
         // Aim at target
         setHomingVelocity(proj, target, pSpeed);
