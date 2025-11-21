@@ -1,180 +1,146 @@
-import java.awt.event.KeyEvent;
 import java.util.HashSet;
 import java.util.Random;
 
-/**
- * Manages all actor movement and player input.
- * This is a stateless "service" class; it does not hold any game state itself,
- * but operates on the GameState object passed to it.
- */
 public class MovementManager {
 
-    // A copy of the directions, passed from PacMan
-    private final char[] directions;
+    private final Direction[] directions = {Direction.UP, Direction.DOWN, Direction.LEFT, Direction.RIGHT};
     private final Random random = new Random();
 
-    public MovementManager(char[] directions) {
-        this.directions = directions;
-    }
+    public MovementManager() {}
 
-    /**
-     * Main update method to move all actors.
-     * @return true if Pac-Man's direction or state changed (image update needed)
-     */
-    public boolean updateActorPositions(PacMan.GameState state, InputHandler input, GameMap map, SoundManager sound, int tileSize) {
-        // HandlePlayerInput returns true if a move was successfully started
+    public boolean updateActorPositions(GameState state, InputHandler input, GameMap map, SoundManager sound, int tileSize) {
         boolean moveStarted = handlePlayerInput(state, input, sound, tileSize);
-        updatePacmanPosition(state, tileSize);
+
+        updatePacmanPosition(state);
         checkPacmanBounds(state, map, tileSize);
-        moveGhosts(state, map, tileSize);
+
+        moveAiActors(state.ghosts, state.walls, map, tileSize);
+
+        if (state.boss != null) {
+            HashSet<Actor> bossSet = new HashSet<>();
+            bossSet.add(state.boss);
+            moveAiActors(bossSet, state.walls, map, tileSize);
+        }
+
+        moveProjectiles(state);
 
         return moveStarted;
     }
 
-    /**
-     * Checks for player input and attempts to start a move.
-     * @return true if a new move was successfully initiated
-     */
-    private boolean handlePlayerInput(PacMan.GameState state, InputHandler input, SoundManager sound, int tileSize) {
+    private boolean handlePlayerInput(GameState state, InputHandler input, SoundManager sound, int tileSize) {
         if (state.pacman.isMoving) return false;
 
-        if (input.isUpPressed()) {
-            return attemptMove(state, 'U', 0, -tileSize, sound, tileSize);
-        } else if (input.isDownPressed()) {
-            return attemptMove(state, 'D', 0, tileSize, sound, tileSize);
-        } else if (input.isLeftPressed()) {
-            return attemptMove(state, 'L', -tileSize, 0, sound, tileSize);
-        } else if (input.isRightPressed()) {
-            return attemptMove(state, 'R', tileSize, 0, sound, tileSize);
+        Direction nextDir = input.getDirection();
+        if (nextDir != Direction.NONE) {
+            return attemptMove(state, nextDir, sound, tileSize);
         }
         return false;
     }
 
-    /**
-     * Attempts to set Pac-Man's target tile in a new direction.
-     * @return true if the move is valid and direction changed
-     */
-    private boolean attemptMove(PacMan.GameState state, char dir, int dx, int dy, SoundManager sound, int tileSize) {
+    private boolean attemptMove(GameState state, Direction dir, SoundManager sound, int tileSize) {
+        int dx = dir.getDx(tileSize);
+        int dy = dir.getDy(tileSize);
+
         int newX = state.pacman.x + dx;
         int newY = state.pacman.y + dy;
 
-        // Check for wall collision at the target *tile*
+        // Check collision at the target TILE
         Entity tempTarget = new Entity(null, newX, newY, state.pacman.width, state.pacman.height);
         for (Entity wall : state.walls) {
-            if (tempTarget.collidesWith(wall)) {
-                return false; // Blocked
-            }
+            if (tempTarget.collidesWith(wall)) return false;
         }
 
         state.pacman.direction = dir;
         state.pacman.targetX = newX;
         state.pacman.targetY = newY;
         state.pacman.isMoving = true;
-        sound.playEffect("audio/move.wav"); // Play sound on move start
-        return true; // Direction changed
+        sound.playEffect(GameConstants.SOUND_MOVE);
+        return true;
     }
 
-    /**
-     * Handles the smooth interpolation of Pac-Man's movement.
-     */
-    private void updatePacmanPosition(PacMan.GameState state, int tileSize) {
+    private void updatePacmanPosition(GameState state) {
         if (!state.pacman.isMoving) return;
 
-        int moveSpeed = 8; // Interpolation speed
         Actor pacman = state.pacman;
+        int moveSpeed = 8; // Interpolation speed
 
-        int nextX = pacman.x;
-        int nextY = pacman.y;
+        // Move pixels towards target
+        if (pacman.x < pacman.targetX) pacman.x += moveSpeed;
+        else if (pacman.x > pacman.targetX) pacman.x -= moveSpeed;
+        else if (pacman.y < pacman.targetY) pacman.y += moveSpeed;
+        else if (pacman.y > pacman.targetY) pacman.y -= moveSpeed;
 
-        // Move towards target
-        if (pacman.x < pacman.targetX) nextX += moveSpeed;
-        else if (pacman.x > pacman.targetX) nextX -= moveSpeed;
-        else if (pacman.y < pacman.targetY) nextY += moveSpeed;
-        else if (pacman.y > pacman.targetY) nextY -= moveSpeed;
-
-        // Collision guard during interpolation
-        Entity nextPos = new Entity(null, nextX, nextY, pacman.width, pacman.height);
-        boolean blocked = false;
-        for (Entity wall : state.walls) {
-            if (nextPos.collidesWith(wall)) {
-                blocked = true;
-                break;
-            }
-        }
-
-        if (!blocked) {
-            pacman.x = nextX;
-            pacman.y = nextY;
-        } else {
-            pacman.isMoving = false;
-            pacman.targetX = pacman.x; // Snap back
-            pacman.targetY = pacman.y;
-        }
-
-        // Check if arrived at target tile
-        if (Math.abs(pacman.x - pacman.targetX) < moveSpeed &&
-                Math.abs(pacman.y - pacman.targetY) < moveSpeed) {
+        // Check if arrived
+        if (Math.abs(pacman.x - pacman.targetX) < moveSpeed && Math.abs(pacman.y - pacman.targetY) < moveSpeed) {
             pacman.x = pacman.targetX;
             pacman.y = pacman.targetY;
             pacman.isMoving = false;
         }
     }
 
-    /**
-     * Keeps Pac-Man within the screen boundaries.
-     */
-    private void checkPacmanBounds(PacMan.GameState state, GameMap map, int tileSize) {
-        int boardWidth = map.getColumnCount() * tileSize;
-        int boardHeight = map.getRowCount() * tileSize;
-        Actor pacman = state.pacman;
+    private void checkPacmanBounds(GameState state, GameMap map, int tileSize) {
+        int boardW = map.getColumnCount() * tileSize;
+        int boardH = map.getRowCount() * tileSize;
+        Actor p = state.pacman;
 
-        if (pacman.x < 0) pacman.x = 0;
-        if (pacman.y < 0) pacman.y = 0;
-        if (pacman.x + pacman.width > boardWidth) pacman.x = boardWidth - pacman.width;
-        if (pacman.y + pacman.height > boardHeight) pacman.y = boardHeight - pacman.height;
-
-        if (!pacman.isMoving) {
-            pacman.targetX = pacman.x;
-            pacman.targetY = pacman.y;
-        }
+        if (p.x < 0) p.x = 0;
+        if (p.y < 0) p.y = 0;
+        if (p.x + p.width > boardW) p.x = boardW - p.width;
+        if (p.y + p.height > boardH) p.y = boardH - p.height;
     }
 
-    /**
-     * Handles ghost AI movement and wall collisions.
-     */
-    private void moveGhosts(PacMan.GameState state, GameMap map, int tileSize) {
-        int boardWidth = map.getColumnCount() * tileSize;
-        int boardHeight = map.getRowCount() * tileSize;
+    // Unified method for Ghosts and Boss
+    private void moveAiActors(HashSet<Actor> actors, HashSet<Entity> walls, GameMap map, int tileSize) {
+        int boardW = map.getColumnCount() * tileSize;
+        int boardH = map.getRowCount() * tileSize;
 
-        for (Actor ghost : state.ghosts) {
-            ghost.x += ghost.velocityX;
-            ghost.y += ghost.velocityY;
+        for (Actor actor : actors) {
+            actor.x += actor.velocityX;
+            actor.y += actor.velocityY;
 
             boolean collided = false;
 
-            // Wall collision
-            for (Entity wall : state.walls) {
-                if (ghost.collidesWith(wall)) {
-                    ghost.x -= ghost.velocityX;
-                    ghost.y -= ghost.velocityY;
+            // Wall Collision
+            for (Entity wall : walls) {
+                if (actor.collidesWith(wall)) {
                     collided = true;
                     break;
                 }
             }
 
-            // Screen boundary collision
-            if (ghost.x < 0 || ghost.x + ghost.width > boardWidth ||
-                    ghost.y < 0 || ghost.y + ghost.height > boardHeight) {
-                ghost.x = Math.max(0, Math.min(ghost.x, boardWidth - ghost.width));
-                ghost.y = Math.max(0, Math.min(ghost.y, boardHeight - ghost.height));
-                collided = true;
+            // Bounds Collision
+            if (!collided) {
+                if (actor.x < 0 || actor.x + actor.width > boardW ||
+                        actor.y < 0 || actor.y + actor.height > boardH) {
+                    collided = true;
+                }
             }
 
-            // Pick a new random direction on collision
             if (collided) {
-                ghost.direction = directions[random.nextInt(directions.length)];
-                ghost.updateVelocity();
+                // Revert move
+                actor.x -= actor.velocityX;
+                actor.y -= actor.velocityY;
+
+                // Pick random new direction
+                actor.direction = directions[random.nextInt(directions.length)];
+                actor.updateVelocity();
             }
         }
+    }
+
+    private void moveProjectiles(GameState state) {
+        HashSet<Actor> toRemove = new HashSet<>();
+        for (Actor proj : state.projectiles) {
+            proj.x += proj.velocityX;
+            proj.y += proj.velocityY;
+
+            for (Entity wall : state.walls) {
+                if (proj.collidesWith(wall)) {
+                    toRemove.add(proj);
+                    break;
+                }
+            }
+        }
+        state.projectiles.removeAll(toRemove);
     }
 }

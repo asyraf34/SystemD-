@@ -1,4 +1,5 @@
-import javax.swing.JFrame;
+import javax.swing.*;
+import java.awt.*;
 
 public class App {
     public static void main(String[] args) throws Exception {
@@ -13,14 +14,26 @@ public class App {
         // frame.setVisible(true);
         frame.setSize(boardWidth, boardHeight);
         frame.setLocationRelativeTo(null);
-        frame.setResizable(false);
+        frame.setResizable(true);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
+        CardLayout cardLayout = new CardLayout();
+        JPanel menuPanel  = new JPanel(cardLayout);
         PacMan pacmanGame = new PacMan();
-        frame.add(pacmanGame);
+
+        MenuPanel menu = new MenuPanel(() -> {
+            cardLayout.show(menuPanel, "GAME");
+            pacmanGame.setFocusable(true);
+            pacmanGame.requestFocusInWindow();
+        });
+
+        menuPanel.add(menu, "MENU");
+        menuPanel.add(pacmanGame, "GAME");
+
+        frame.add(menuPanel);
         frame.pack();
-        pacmanGame.requestFocus();
         frame.setVisible(true);
 
+        cardLayout.show(menuPanel, "MENU");
     }
 }

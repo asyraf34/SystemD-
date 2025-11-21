@@ -1,86 +1,135 @@
-import java.util.HashSet;
+import java.util.Iterator;
 
-/**
- * Manages all collision detection for the game.
- * This is a stateless "service" class that operates on the GameState.
- */
 public class CollisionManager {
 
-    // Public constants to return from checkGhostCollisions
     public static final int GHOST_COLLISION_NONE = 0;
     public static final int GHOST_COLLISION_LIFE_LOST = 1;
     public static final int GHOST_COLLISION_GHOST_KILLED = 2;
 
-    /**
-     * Checks for collisions between Pac-Man and food pellets.
-     */
-    public void checkFoodCollisions(PacMan.GameState state, SoundManager soundManager) {
-        Entity foodEaten = null;
-        for (Entity food : state.foods) {
-            if (state.pacman.collidesWith(food)) {
-                foodEaten = food;
+    // --- 1. Simple Collisions (Food & Knife) ---
+
+    public void checkFoodCollisions(GameState state, SoundManager soundManager) {
+        Iterator<Entity> it = state.foods.iterator();
+        while (it.hasNext()) {
+            if (state.pacman.collidesWith(it.next())) {
+                it.remove();
                 state.score += 10;
                 soundManager.playEffect("audio/food.wav");
-                break; // Eat one per frame
+                return; // Eat only one per frame
             }
-        }
-        if (foodEaten != null) {
-            state.foods.remove(foodEaten);
         }
     }
 
-    /**
-     * Checks for collisions between Pac-Man and knives.
-     * @return true if a knife was picked up (image update needed)
-     */
-    public boolean checkKnifeCollisions(PacMan.GameState state) {
-        Entity knifeCollected = null;
-        for (Entity knife : state.knives) {
-            if (state.pacman.collidesWith(knife)) {
-                knifeCollected = knife;
+    public boolean checkKnifeCollisions(GameState state) {
+        Iterator<Entity> it = state.knives.iterator();
+        while (it.hasNext()) {
+            if (state.pacman.collidesWith(it.next())) {
+                it.remove();
                 state.hasWeapon = true;
                 state.knifeCount++;
-                break;
+                return true;
             }
         }
-        if (knifeCollected != null) {
-            state.knives.remove(knifeCollected);
-            return true; // Knife was picked up
-        }
-        return false; // No knife picked up
+        return false;
     }
 
-    /**
-     * Checks for collisions between Pac-Man and ghosts.
-     * @return an integer constant: 0 (none), 1 (life lost), or 2 (ghost killed)
-     */
-    public int checkGhostCollisions(PacMan.GameState state, SoundManager soundManager) {
-        Actor ghostToRemove = null;
-        for (Actor ghost : state.ghosts) {
+    // --- 2. Entity Collisions (Ghost, Boss, Projectile) ---
+
+    public int checkGhostCollisions(GameState state, SoundManager soundManager) {
+        Iterator<Actor> it = state.ghosts.iterator();
+        while (it.hasNext()) {
+            Actor ghost = it.next();
             if (state.pacman.collidesWith(ghost)) {
+
+                // CASE A: Pac-Man has weapon -> Kill Ghost
                 if (state.hasWeapon && state.knifeCount > 0) {
-                    // Pac-Man wins
-                    state.knifeCount--;
-                    ghostToRemove = ghost;
-                    if (state.knifeCount == 0) {
-                        state.hasWeapon = false;
-                    }
-                    // Don't break; Pac-Man can kill multiple ghosts in one frame
-                    if (ghostToRemove != null) {
-                        state.ghosts.remove(ghostToRemove);
-                    }
-                    return GHOST_COLLISION_GHOST_KILLED; // Ghost was killed
-                } else {
-                    // Ghost wins
-                    state.lives--;
-                    soundManager.playEffect("audio/life_lost.wav");
-                    if (state.lives == 0) {
-                        state.gameOver = true;
-                    }
-                    return GHOST_COLLISION_LIFE_LOST; // Life was lost
+                    consumeWeapon(state);
+                    triggerDeathAnimation(state, ghost);
+                    it.remove();
+                    soundManager.playEffect("audio/kill.wav");
+                    return GHOST_COLLISION_GHOST_KILLED;
                 }
+
+                // CASE B: No weapon -> Pac-Man dies
+                return handleLifeLost(state, soundManager);
             }
         }
-        return GHOST_COLLISION_NONE; // No collision
+        return GHOST_COLLISION_NONE;
+    }
+
+    // src/CollisionManager.java
+
+    // src/CollisionManager.java
+
+    public int checkBossCollisions(GameState state, SoundManager soundManager) {
+        if (state.boss == null || !state.pacman.collidesWith(state.boss)) {
+            return GHOST_COLLISION_NONE;
+        }
+
+        // CASE A: No Weapon -> Instant Death
+        if (!state.hasWeapon || state.knifeCount <= 0) {
+            return handleLifeLost(state, soundManager);
+        }
+
+        // CASE B: Has Weapon (Knife)
+
+        // 1. If Boss is Reflecting -> Pac-Man takes damage (but knife is NOT consumed)
+        if (state.boss.isReflecting()) {
+            return handleLifeLost(state, soundManager);
+        }
+
+        // 2. Boss is Vulnerable -> Boss takes damage (Knife IS consumed)
+        consumeWeapon(state);
+
+        // Apply damage. takeDamage() returns true if boss is still alive, false if defeated.
+        if (!state.boss.takeDamage()) {
+            state.score += 1000;
+            state.boss = null; // Boss defeated
+        }
+        state.pacman.reset();
+
+        // Successful hit on a vulnerable boss. Player does NOT lose life.
+        return GHOST_COLLISION_GHOST_KILLED;
+    }
+
+    public int checkProjectileCollisions(GameState state, SoundManager soundManager) {
+        if (state.projectiles == null) return GHOST_COLLISION_NONE;
+
+        Iterator<Actor> it = state.projectiles.iterator();
+        while (it.hasNext()) {
+            if (state.pacman.collidesWith(it.next())) {
+                it.remove();
+                return handleLifeLost(state, soundManager);
+            }
+        }
+        return GHOST_COLLISION_NONE;
+    }
+
+    // --- 3. Private Helper Methods (Reduces Duplication) ---
+
+    private int handleLifeLost(GameState state, SoundManager sound) {
+        state.lives--;
+        sound.playEffect("audio/life_lost.wav");
+        if (state.lives <= 0) {
+            state.gameOver = true;
+        }
+        return GHOST_COLLISION_LIFE_LOST;
+    }
+
+    private void consumeWeapon(GameState state) {
+        state.knifeCount--;
+        if (state.knifeCount <= 0) {
+            state.hasWeapon = false;
+        }
+    }
+
+    private void triggerDeathAnimation(GameState state, Actor ghost) {
+        try {
+            state.animations.add(new DeathAnimation(
+                    ghost.image, ghost.x, ghost.y, ghost.width, ghost.height, 30, "~"
+            ));
+        } catch (Exception e) {
+            // Ignore animation errors, game must go on
+        }
     }
 }
