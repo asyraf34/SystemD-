@@ -19,6 +19,7 @@ public class GameState {
     public HashSet<Entity> knives = new HashSet<>();
     public HashSet<Actor> ghosts = new HashSet<>();
     public Actor pacman;
+    public boolean[][] walkableGrid;
 
     // Level Transition State
     public boolean interLevel = false;

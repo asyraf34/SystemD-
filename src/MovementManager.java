@@ -1,4 +1,6 @@
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Random;
 
 public class MovementManager {
@@ -14,12 +16,12 @@ public class MovementManager {
         updatePacmanPosition(state);
         checkPacmanBounds(state, map, tileSize);
 
-        moveAiActors(state.ghosts, state.walls, map, tileSize);
+        moveAiActors(state, state.ghosts, state.walls, map, tileSize);
 
         if (state.boss != null) {
             HashSet<Actor> bossSet = new HashSet<>();
             bossSet.add(state.boss);
-            moveAiActors(bossSet, state.walls, map, tileSize);
+            moveAiActors(state, bossSet, state.walls, map, tileSize);
         }
 
         moveProjectiles(state);
@@ -90,11 +92,18 @@ public class MovementManager {
     }
 
     // Unified method for Ghosts and Boss
-    private void moveAiActors(HashSet<Actor> actors, HashSet<Entity> walls, GameMap map, int tileSize) {
+    private void moveAiActors(GameState state, HashSet<Actor> actors, HashSet<Entity> walls, GameMap map, int tileSize) {
         int boardW = map.getColumnCount() * tileSize;
         int boardH = map.getRowCount() * tileSize;
 
         for (Actor actor : actors) {
+            if (isAlignedToTile(actor, tileSize)) {
+                Direction chaseDir = chooseDirectionTowardTarget(actor, state, tileSize);
+                if (chaseDir != null && chaseDir != actor.direction) {
+                    actor.direction = chaseDir;
+                    actor.updateVelocity();
+                }
+            }
             actor.x += actor.velocityX;
             actor.y += actor.velocityY;
 
@@ -121,11 +130,59 @@ public class MovementManager {
                 actor.x -= actor.velocityX;
                 actor.y -= actor.velocityY;
 
-                // Pick random new direction
-                actor.direction = directions[random.nextInt(directions.length)];
+                Direction chaseDir = chooseDirectionTowardTarget(actor, state, tileSize);
+                if (chaseDir != null) {
+                    actor.direction = chaseDir;
+                } else {
+                    actor.direction = directions[random.nextInt(directions.length)];
+                }
                 actor.updateVelocity();
             }
         }
+    }
+
+    private boolean isAlignedToTile(Actor actor, int tileSize) {
+        return actor.x % tileSize == 0 && actor.y % tileSize == 0;
+    }
+
+    private Direction chooseDirectionTowardTarget(Actor actor, GameState state, int tileSize) {
+        if (actor == null || actor.speed == 0) return null;
+        if (state == null || state.pacman == null || state.walkableGrid == null) return null;
+
+        int rows = state.walkableGrid.length;
+        int cols = state.walkableGrid[0].length;
+
+        int actorCol = actor.x / tileSize;
+        int actorRow = actor.y / tileSize;
+        int targetCol = state.pacman.x / tileSize;
+        int targetRow = state.pacman.y / tileSize;
+
+        List<Direction> bestDirections = new ArrayList<>();
+        int bestDistance = Integer.MAX_VALUE;
+
+        for (Direction dir : directions) {
+            int nextCol = actorCol + (dir == Direction.RIGHT ? 1 : dir == Direction.LEFT ? -1 : 0);
+            int nextRow = actorRow + (dir == Direction.DOWN ? 1 : dir == Direction.UP ? -1 : 0);
+
+            if (!isWalkable(nextRow, nextCol, rows, cols, state.walkableGrid)) continue;
+
+            int distance = Math.abs(nextCol - targetCol) + Math.abs(nextRow - targetRow);
+
+            if (distance < bestDistance) {
+                bestDistance = distance;
+                bestDirections.clear();
+                bestDirections.add(dir);
+            } else if (distance == bestDistance) {
+                bestDirections.add(dir);
+            }
+        }
+
+        if (bestDirections.isEmpty()) return null;
+        return bestDirections.get(random.nextInt(bestDirections.size()));
+    }
+
+    private boolean isWalkable(int row, int col, int rows, int cols, boolean[][] walkableGrid) {
+        return row >= 0 && row < rows && col >= 0 && col < cols && walkableGrid[row][col];
     }
 
     private void moveProjectiles(GameState state) {
