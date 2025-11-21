@@ -35,5 +35,6 @@ public class App {
         frame.setVisible(true);
 
         cardLayout.show(menuPanel, "MENU");
+
     }
 }

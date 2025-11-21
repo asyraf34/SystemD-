@@ -1,15 +1,25 @@
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
+import java.io.IOException;
+import java.io.InputStream;
 
 public class MenuPanel extends JPanel implements ActionListener {
 
     private boolean showPressStart = true;    // blinking text
     private Timer blinkTimer = new Timer(500, this); // blink every 0.5 sec
 
+    private final int deltaY = 30;
+
+    private CustomFont customFont;
+
+    private Font TestFont;
+
     public MenuPanel(Runnable startGameCallback) {
         setFocusable(true);
         setBackground(Color.BLACK);
+
+        customFont = new CustomFont(Font.TRUETYPE_FONT, 30);
 
         blinkTimer.start();
 
@@ -35,26 +45,26 @@ public class MenuPanel extends JPanel implements ActionListener {
 
         // Title
         g2.setColor(Color.YELLOW);
-        g2.setFont(new Font("Arial", Font.BOLD, 72));
+        g2.setFont(customFont.getCustomFont().deriveFont(Font.BOLD, 72));
         String title = "MAN - HUNT";
         int titleWidth = g2.getFontMetrics().stringWidth(title);
-        g2.drawString(title, (getWidth() - titleWidth) / 2, 200);
+        g2.drawString(title, (getWidth() - titleWidth) / 2, 285 + deltaY);
 
         // Blinking text
         if (showPressStart) {
             g2.setColor(Color.WHITE);
-            g2.setFont(new Font("Arial", Font.BOLD, 32));
+            g2.setFont(customFont.getCustomFont().deriveFont(Font.BOLD,32));
             String msg = "PRESS ENTER TO START";
             int msgWidth = g2.getFontMetrics().stringWidth(msg);
-            g2.drawString(msg, (getWidth() - msgWidth) / 2, 350);
+            g2.drawString(msg, (getWidth() - msgWidth) / 2, 350 + deltaY);
         }
 
         // Instructions
-        g2.setFont(new Font("Arial", Font.PLAIN, 20));
+        g2.setFont(customFont.getCustomFont().deriveFont(Font.PLAIN, 20));
         g2.setColor(Color.GRAY);
         String escMsg = "Press ESC to Exit";
         int escWidth = g2.getFontMetrics().stringWidth(escMsg);
-        g2.drawString(escMsg, (getWidth() - escWidth) / 2, 400);
+        g2.drawString(escMsg, (getWidth() - escWidth) / 2, 400 + deltaY);
     }
 
     @Override
