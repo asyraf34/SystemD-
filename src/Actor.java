@@ -8,13 +8,12 @@ public class Actor extends Entity {
 
     public final int startX;
     public final int startY;
+    public Direction direction = Direction.NONE;
 
-    public char direction = 0; // U D L R
     public int velocityX = 0;
     public int velocityY = 0;
     public int speed;
 
-    // For smooth tile-based movement
     public boolean isMoving = false;
     public int targetX, targetY;
 
@@ -31,19 +30,9 @@ public class Actor extends Entity {
      * Updates the actor's velocity based on its current direction.
      */
     public void updateVelocity() {
-        if (this.direction == 'U') {
-            this.velocityX = 0;
-            this.velocityY = -speed;
-        } else if (this.direction == 'D') {
-            this.velocityX = 0;
-            this.velocityY = speed;
-        } else if (this.direction == 'L') {
-            this.velocityX = -speed;
-            this.velocityY = 0;
-        } else if (this.direction == 'R') {
-            this.velocityX = speed;
-            this.velocityY = 0;
-        }
+        // CHANGED: Much simpler using the helper method in Direction
+        this.velocityX = direction.getDx(speed);
+        this.velocityY = direction.getDy(speed);
     }
 
     /**
@@ -56,7 +45,7 @@ public class Actor extends Entity {
         this.targetY = this.startY;
         this.velocityX = 0;
         this.velocityY = 0;
-        this.direction = 0;
+        this.direction = Direction.NONE;
         this.isMoving = false;
     }
 }

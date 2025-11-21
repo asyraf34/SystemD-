@@ -3,13 +3,13 @@ import java.awt.*;
 import java.awt.event.*;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.Serial;
 
 public class MenuPanel extends JPanel implements ActionListener {
-
+    @Serial
+    private static final long serialVersionUID = 1L;
     private boolean showPressStart = true;    // blinking text
-    private Timer blinkTimer = new Timer(500, this); // blink every 0.5 sec
-
-    private final int deltaY = 30;
+    private final Timer blinkTimer = new Timer(500, this); // blink every 0.5 sec
 
     Font customFont;
 
@@ -17,12 +17,11 @@ public class MenuPanel extends JPanel implements ActionListener {
         setFocusable(true);
         setBackground(Color.BLACK);
 
-        InputStream is = getClass().getResourceAsStream("/04B_03__.ttf");
-        try{
-            customFont = Font.createFont(Font.TRUETYPE_FONT, is);
-        }catch(FontFormatException e){
-            e.printStackTrace();
-        }catch(IOException e){
+        try (InputStream is = getClass().getResourceAsStream("/04B_03__.ttf")) {
+            if (is != null) {
+                customFont = Font.createFont(Font.TRUETYPE_FONT, is);
+            }
+        } catch (FontFormatException | IOException e) {
             e.printStackTrace();
         }
 
@@ -53,6 +52,7 @@ public class MenuPanel extends JPanel implements ActionListener {
         g2.setFont(customFont.deriveFont(Font.BOLD, 72));
         String title = "MAN - HUNT";
         int titleWidth = g2.getFontMetrics().stringWidth(title);
+        int deltaY = 30;
         g2.drawString(title, (getWidth() - titleWidth) / 2, 285 + deltaY);
 
         // Blinking text
