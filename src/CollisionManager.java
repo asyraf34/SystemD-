@@ -57,6 +57,10 @@ public class CollisionManager {
         return GHOST_COLLISION_NONE;
     }
 
+    // src/CollisionManager.java
+
+    // src/CollisionManager.java
+
     public int checkBossCollisions(GameState state, SoundManager soundManager) {
         if (state.boss == null || !state.pacman.collidesWith(state.boss)) {
             return GHOST_COLLISION_NONE;
@@ -67,20 +71,25 @@ public class CollisionManager {
             return handleLifeLost(state, soundManager);
         }
 
-        // CASE B: Has Weapon (Always consumes knife on contact)
-        consumeWeapon(state);
+        // CASE B: Has Weapon (Knife)
 
-        // If Boss is Reflecting -> Pac-Man takes damage
+        // 1. If Boss is Reflecting -> Pac-Man takes damage (but knife is NOT consumed)
         if (state.boss.isReflecting()) {
             return handleLifeLost(state, soundManager);
         }
 
-        // If Boss is Vulnerable -> Boss takes damage
+        // 2. Boss is Vulnerable -> Boss takes damage (Knife IS consumed)
+        consumeWeapon(state);
+
+        // Apply damage. takeDamage() returns true if boss is still alive, false if defeated.
         if (!state.boss.takeDamage()) {
             state.score += 1000;
             state.boss = null; // Boss defeated
         }
-        return GHOST_COLLISION_GHOST_KILLED; // Successful hit
+        state.pacman.reset();
+
+        // Successful hit on a vulnerable boss. Player does NOT lose life.
+        return GHOST_COLLISION_GHOST_KILLED;
     }
 
     public int checkProjectileCollisions(GameState state, SoundManager soundManager) {
