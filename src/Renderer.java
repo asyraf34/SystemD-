@@ -166,105 +166,26 @@ public class Renderer {
     // -----------------------------------------------------------------
 
     public Image createWallTexture(boolean[][] wallMatrix, int row, int column) {
+        Image wallImage = assetManager.getWallImage();
+
+        if (wallImage == null) {
+            BufferedImage fallback = new BufferedImage(tileSize, tileSize, BufferedImage.TYPE_INT_ARGB);
+            Graphics2D fallbackG = fallback.createGraphics();
+            fallbackG.setColor(new Color(30, 30, 30));
+            fallbackG.fillRect(0, 0, tileSize, tileSize);
+            fallbackG.setColor(new Color(80, 80, 80));
+            fallbackG.drawRect(0, 0, tileSize - 1, tileSize - 1);
+            fallbackG.dispose();
+            return fallback;
+        }
+
         BufferedImage texture = new BufferedImage(tileSize, tileSize, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g2d = texture.createGraphics();
-        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
-        boolean hasTop    = row > 0 && wallMatrix[row - 1][column];
-        boolean hasBottom = row < gameMap.getRowCount() - 1 && wallMatrix[row + 1][column];
-        boolean hasLeft   = column > 0 && wallMatrix[row][column - 1];
-        boolean hasRight  = column < gameMap.getColumnCount() - 1 && wallMatrix[row][column + 1];
-
-        drawBase(g2d);
-        drawInner(g2d);
-
-        Stroke originalStroke = g2d.getStroke();
-        g2d.setStroke(new BasicStroke(Math.max(1f, ((float) tileSize / 8) / 3f)));
-
-        if (!hasTop)    drawHorizontalDetailBorder(g2d, true);
-        else            drawGenericBorder(g2d, "TOP");
-
-        if (!hasBottom) drawHorizontalDetailBorder(g2d, false);
-        else            drawGenericBorder(g2d, "BOTTOM");
-
-        if (!hasLeft)   drawVerticalDetailBorder(g2d, true);
-        else            drawGenericBorder(g2d, "LEFT");
-
-        if (!hasRight)  drawVerticalDetailBorder(g2d, false);
-        else            drawGenericBorder(g2d, "RIGHT");
-
-        g2d.setStroke(originalStroke);
+        g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+        g2d.drawImage(wallImage, 0, 0, tileSize, tileSize, null);
         g2d.dispose();
         return texture;
     }
 
-    private void drawBase(Graphics2D g2d) {
-        if (assetManager.getWallImage() != null) {
-            g2d.drawImage(assetManager.getWallImage(), 0, 0, tileSize, tileSize, null);
-        }
-        g2d.setPaint(new GradientPaint(0, 0, new Color(70, 50, 20), tileSize, tileSize, new Color(235, 190, 90)));
-        g2d.fillRect(0, 0, tileSize, tileSize);
-    }
-
-    private void drawInner(Graphics2D g2d) {
-        int borderT = Math.max(3, tileSize / 9);
-        int innerW = Math.max(0, tileSize - borderT * 2);
-        if (innerW == 0) return;
-        g2d.setPaint(new GradientPaint(0, borderT, new Color(120, 90, 40), 0, tileSize - borderT, new Color(255, 220, 130)));
-        g2d.fillRoundRect(borderT, borderT, innerW, innerW, borderT * 2, borderT * 2);
-        g2d.setColor(new Color(255, 217, 89));
-        g2d.setStroke(new BasicStroke(Math.max(1, tileSize / 32f)));
-        g2d.drawRoundRect(borderT, borderT, innerW, innerW, borderT * 2, borderT * 2);
-    }
-
-    private void drawGenericBorder(Graphics2D g2d, String side) {
-        int th = Math.max(2, Math.max(3, tileSize / 8) / 3);
-        g2d.setColor(new Color(44, 16, 94));
-        if (side.equals("TOP"))    g2d.fillRect(0, 0, tileSize, th);
-        if (side.equals("BOTTOM")) g2d.fillRect(0, tileSize - th, tileSize, th);
-        if (side.equals("LEFT"))   g2d.fillRect(0, 0, th, tileSize);
-        if (side.equals("RIGHT"))  g2d.fillRect(tileSize - th, 0, th, tileSize);
-    }
-
-    private void drawHorizontalDetailBorder(Graphics2D g2d, boolean isTop) {
-        int accentTh = Math.max(3, tileSize / 8);
-        Color bright = new Color(255, 210, 100);
-        Color dark   = new Color(180, 130, 50);
-        int y = isTop ? 0 : tileSize - accentTh;
-        g2d.setPaint(new GradientPaint(0, isTop ? 0 : y, isTop ? bright : dark, 0, isTop ? accentTh : tileSize, isTop ? dark : bright));
-        g2d.fillRect(0, y, tileSize, accentTh);
-        drawBorderSegments(g2d, accentTh, true, isTop);
-    }
-
-    private void drawVerticalDetailBorder(Graphics2D g2d, boolean isLeft) {
-        int accentTh = Math.max(3, tileSize / 8);
-        Color bright = new Color(255, 210, 100);
-        Color dark   = new Color(180, 130, 50);
-        int x = isLeft ? 0 : tileSize - accentTh;
-        g2d.setPaint(new GradientPaint(isLeft ? 0 : x, 0, isLeft ? bright : dark, isLeft ? accentTh : tileSize, 0, isLeft ? dark : bright));
-        g2d.fillRect(x, 0, accentTh, tileSize);
-        drawBorderSegments(g2d, accentTh, false, isLeft);
-    }
-
-    private void drawBorderSegments(Graphics2D g2d, int accentTh, boolean isHorizontal, boolean isStart) {
-        int segW = Math.max(3, tileSize / 6);
-        int gap = Math.max(2, segW / 2);
-        Color highlight = new Color(255, 235, 180);
-        Color lineCol = new Color(180, 130, 50).darker();
-        if (isStart) lineCol = new Color(180, 130, 50);
-
-        for (int i = 0; i < tileSize; i += segW + gap) {
-            int len = Math.min(segW, tileSize - i);
-            int offsetPos = isStart ? Math.max(1, accentTh / 3) : (tileSize - accentTh) + Math.max(1, accentTh / 4);
-            int linePos = isStart ? accentTh - 1 : tileSize - 1;
-
-            g2d.setColor(highlight);
-            if (isHorizontal) g2d.fillRect(i, offsetPos, len, Math.max(1, accentTh / 3));
-            else              g2d.fillRect(offsetPos, i, Math.max(1, accentTh / 3), len);
-
-            g2d.setColor(lineCol);
-            if (isHorizontal) g2d.drawLine(i, linePos, i + len, linePos);
-            else              g2d.drawLine(linePos, i, linePos, i + len);
-        }
-    }
 }
