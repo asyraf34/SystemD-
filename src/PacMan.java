@@ -109,7 +109,7 @@ public class PacMan extends JPanel {
         }
 
         state.walkableGrid = walkableGrid;
-        
+
         // Generate Walls
         for (int r = 0; r < gameMap.getRowCount(); r++) {
             for (int c = 0; c < gameMap.getColumnCount(); c++) {
@@ -142,6 +142,9 @@ public class PacMan extends JPanel {
                     else if (tileChar == 'r') ghostImage = assetManager.getRedGhostImage();
 
                     Actor ghost = new Actor(ghostImage, c * GameConstants.TILE_SIZE, r * GameConstants.TILE_SIZE, GameConstants.TILE_SIZE, GameConstants.TILE_SIZE, speed);
+
+                    // split movement into SMART and RANDOM; even index->SMART, odd index->RANDOM
+                    ghost.movementType = (state.ghosts.size() % 2 == 0) ? MovementType.SMART : MovementType.RANDOM;
                     ghost.direction = directions[random.nextInt(directions.length)];
                     ghost.updateVelocity();
                     state.ghosts.add(ghost);

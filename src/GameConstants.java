@@ -2,8 +2,8 @@ public class GameConstants {
 
     // --- Dimensions ---
     public static final int TILE_SIZE = 32;
-    public static final int SCREEN_WIDTH = 19 * TILE_SIZE;  // Based on your map columns
-    public static final int SCREEN_HEIGHT = 21 * TILE_SIZE; // Based on your map rows
+    public static final int SCREEN_WIDTH = 19 * TILE_SIZE;  // Based on map columns
+    public static final int SCREEN_HEIGHT = 21 * TILE_SIZE; // Based on map rows
 
     // --- Game Speed Balance ---
     public static final int SPEED_PACMAN = TILE_SIZE / 4;

@@ -19,6 +19,8 @@ public class GameState {
     public HashSet<Entity> knives = new HashSet<>();
     public HashSet<Actor> ghosts = new HashSet<>();
     public Actor pacman;
+
+    // create grid on the game map for heuristic
     public boolean[][] walkableGrid;
 
     // Level Transition State
