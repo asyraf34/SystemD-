@@ -69,7 +69,7 @@ public class MovementManager {
         if (!state.pacman.isMoving) return;
 
         Actor pacman = state.pacman;
-        int moveSpeed = 8; // Interpolation speed
+        int moveSpeed = pacman.speed; // Interpolation speed
 
         // Move pixels towards target
         if (pacman.x < pacman.targetX) pacman.x += moveSpeed;

@@ -7,6 +7,7 @@ public class GameConstants {
 
     // --- Game Speed Balance ---
     public static final int SPEED_PACMAN = TILE_SIZE / 4;
+    public static final int SPEED_PACMAN_SPRINT = SPEED_PACMAN * 2;
     public static final int SPEED_GHOST = TILE_SIZE / 3;
     public static final int SPEED_BOSS = TILE_SIZE / 3;
     public static final int SPEED_PROJECTILE_BONUS = 2;
@@ -22,6 +23,8 @@ public class GameConstants {
     public static final int TIMER_BOSS_NORMAL = 200; // 10 seconds (at 20fps)
     public static final int TIMER_BOSS_REFLECT = 100;// 5 seconds
     public static final int TIMER_BOSS_ATTACK = 40;  // 2 seconds
+    public static final int TIMER_SPRINT_DURATION = 60; // 3 seconds at 20 updates per second
+    public static final int TIMER_SPRINT_COOLDOWN = 100; // 5 seconds cooldown
 
     // --- Asset Paths ---
     public static final String SOUND_BG = "audio/background.wav";

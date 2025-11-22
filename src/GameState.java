@@ -12,6 +12,11 @@ public class GameState {
     public boolean hasWeapon = false;
     public Boss boss;
 
+    // Sprint State
+    public boolean sprintActive = false;
+    public int sprintTicksRemaining = 0;
+    public int sprintCooldownTicks = 0;
+
     // Entities
     public HashSet<Actor> projectiles = new HashSet<>();
     public HashSet<Entity> walls = new HashSet<>();

@@ -76,6 +76,9 @@ public class PacMan extends JPanel {
         state.projectiles.clear();
         state.boss = null;
         state.animations.clear();
+        state.sprintActive = false;
+        state.sprintTicksRemaining = 0;
+        state.sprintCooldownTicks = 0;
 
         String[] currentMap = gameMap.getMapData(state.currentLevel);
         boolean[][] wallMatrix = new boolean[gameMap.getRowCount()][gameMap.getColumnCount()];
