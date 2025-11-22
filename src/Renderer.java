@@ -147,6 +147,9 @@ public class Renderer {
             kx -= iconH + gap;
         }
 
+        // Sprint Meter
+        drawSprintMeter(g2, state, baseY, iconH, gap);
+
         // Boss HP
         if (state.boss != null) {
             g2.setFont(new Font("Arial", Font.BOLD, Math.max(16, tileSize / 2 - 2)));
@@ -159,6 +162,57 @@ public class Renderer {
         }
 
         g2.dispose();
+    }
+
+    private void drawSprintMeter(Graphics2D g2, GameState state, int baseY, int iconH, int gap) {
+        int meterHeight = Math.max(iconH / 2, (int) (iconH * 0.6));
+        int meterWidth = Math.max(tileSize * 6, boardWidth / 2);
+        int mx = (boardWidth - meterWidth) / 2;
+        int my = baseY + (iconH - meterHeight) / 2;
+
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+        // Background and border
+        g2.setColor(new Color(255, 255, 255, 50));
+        g2.fillRoundRect(mx, my, meterWidth, meterHeight, 12, 12);
+        g2.setColor(new Color(255, 255, 255, 140));
+        g2.drawRoundRect(mx, my, meterWidth, meterHeight, 12, 12);
+
+        // Determine status
+        boolean onCooldown = state.sprintCooldownTicks > 0;
+        boolean active = state.sprintActive;
+        float fillRatio;
+        Color fillColor;
+        String label;
+
+        if (active) {
+            fillRatio = Math.max(0f, Math.min(1f, (float) state.sprintTicksRemaining / GameConstants.TIMER_SPRINT_DURATION));
+            fillColor = new Color(255, 200, 0);
+            label = "Sprinting";
+        } else if (onCooldown) {
+            float cooldownRatio = 1f - (float) state.sprintCooldownTicks / GameConstants.TIMER_SPRINT_COOLDOWN;
+            fillRatio = Math.max(0f, Math.min(1f, cooldownRatio));
+            fillColor = new Color(180, 60, 60);
+            label = "Cooldown";
+        } else {
+            fillRatio = 1f;
+            fillColor = new Color(60, 180, 90);
+            label = "Sprint";
+        }
+
+        int fillWidth = (int) (fillRatio * (meterWidth - 4));
+        g2.setColor(fillColor);
+        g2.fillRoundRect(mx + 2, my + 2, fillWidth, meterHeight - 4, 10, 10);
+
+        // Label
+        g2.setFont(new Font("Arial", Font.BOLD, Math.max(12, tileSize / 3)));
+        FontMetrics fm = g2.getFontMetrics();
+        int textX = mx + (meterWidth - fm.stringWidth(label)) / 2;
+        int textY = my + (meterHeight - fm.getHeight()) / 2 + fm.getAscent();
+        g2.setColor(Color.BLACK);
+        g2.drawString(label, textX + 1, textY + 1);
+        g2.setColor(Color.WHITE);
+        g2.drawString(label, textX, textY);
     }
 
     // -----------------------------------------------------------------

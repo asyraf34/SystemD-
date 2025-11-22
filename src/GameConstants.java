@@ -15,7 +15,7 @@ public class GameConstants {
     // --- Gameplay Settings ---
     public static final int MAX_LIVES = 3;
     public static final int BOSS_LIVES = 3;
-    public static final int STARTING_KNIVES = 3;
+    public static final int STARTING_KNIVES = 5;
 
     // --- Timers (in Game Ticks) ---
     public static final int TIMER_INTERLEVEL = 15;   // Time between levels
@@ -23,7 +23,7 @@ public class GameConstants {
     public static final int TIMER_BOSS_NORMAL = 200; // 10 seconds (at 20fps)
     public static final int TIMER_BOSS_REFLECT = 100;// 5 seconds
     public static final int TIMER_BOSS_ATTACK = 40;  // 2 seconds
-    public static final int TIMER_SPRINT_DURATION = 60; // 3 seconds at 20 updates per second
+    public static final int TIMER_SPRINT_DURATION = 30; // 1.5 seconds at 20 updates per second
     public static final int TIMER_SPRINT_COOLDOWN = 100; // 5 seconds cooldown
 
     // --- Asset Paths ---
