@@ -124,6 +124,11 @@ public class Renderer {
         int tx = boardWidth - pad - fm.stringWidth(levelText);
         g2.drawString(levelText, tx, ty);
 
+        // Boss HUD in top bar
+        if (state.boss != null) {
+            drawBossHud(g2, state, pad);
+        }
+
         // Bottom Bar Icons
         int iconH = (int) (bottomBarH * 0.8);
         int gap   = Math.max(6, tileSize / 6);
@@ -149,17 +154,6 @@ public class Renderer {
 
         // Sprint Meter
         drawSprintMeter(g2, state, baseY, iconH, gap);
-
-        // Boss HP
-        if (state.boss != null) {
-            g2.setFont(new Font("Arial", Font.BOLD, Math.max(16, tileSize / 2 - 2)));
-            String bossText = "BOSS: " + state.boss.getLives();
-            FontMetrics bfm = g2.getFontMetrics();
-            int btx = (boardWidth - bfm.stringWidth(bossText)) / 2;
-            int bty = baseY + (iconH - bfm.getHeight()) / 2 + bfm.getAscent();
-            g2.setColor(Color.RED);
-            g2.drawString(bossText, btx, bty);
-        }
 
         g2.dispose();
     }
@@ -215,6 +209,57 @@ public class Renderer {
         g2.drawString(label, textX, textY);
     }
 
+    private void drawBossHud(Graphics2D g2, GameState state, int pad) {
+        Image bossImg = assetManager.getBossImage();
+        int centerX = boardWidth / 2;
+        int gap = Math.max(6, pad / 2);
+
+        int barWidth = Math.max(tileSize * 8, boardWidth / 3);
+        int barHeight = Math.max(topBarH / 2, tileSize / 2);
+        int iconW = 0;
+        int iconH = 0;
+
+        if (bossImg != null) {
+            iconH = Math.max(topBarH - pad * 2, tileSize);
+            iconW = iconH * bossImg.getWidth(null) / bossImg.getHeight(null);
+        }
+
+        int totalWidth = barWidth + (iconW > 0 ? iconW + gap : 0);
+        int startX = centerX - totalWidth / 2;
+        int barX = iconW > 0 ? startX + iconW + gap : startX;
+        int barY = (topBarH - barHeight) / 2;
+
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+        if (bossImg != null) {
+            g2.drawImage(bossImg, startX, (topBarH - iconH) / 2, iconW, iconH, null);
+        }
+
+        g2.setColor(new Color(80, 0, 0, 180));
+        g2.fillRoundRect(barX, barY, barWidth, barHeight, 12, 12);
+        g2.setColor(new Color(200, 80, 80, 220));
+        g2.drawRoundRect(barX, barY, barWidth, barHeight, 12, 12);
+
+        float livesRatio = Math.max(0f, Math.min(1f, (float) state.boss.getLives() / GameConstants.BOSS_LIVES));
+        int innerWidth = Math.max(0, (int) ((barWidth - 6) * livesRatio));
+        int innerHeight = barHeight - 6;
+        int innerX = barX + 3;
+        int innerY = barY + 3;
+
+        g2.setPaint(new GradientPaint(innerX, innerY, new Color(255, 120, 120), innerX, innerY + innerHeight, new Color(200, 20, 20)));
+        g2.fillRoundRect(innerX, innerY, innerWidth, innerHeight, 10, 10);
+
+        String label = "BOSS " + state.boss.getLives() + "/" + GameConstants.BOSS_LIVES;
+        g2.setFont(new Font("Arial", Font.BOLD, Math.max(14, tileSize / 2)));
+        FontMetrics fm = g2.getFontMetrics();
+        int textX = barX + (barWidth - fm.stringWidth(label)) / 2;
+        int textY = barY + (barHeight - fm.getHeight()) / 2 + fm.getAscent();
+
+        g2.setColor(Color.BLACK);
+        g2.drawString(label, textX + 1, textY + 1);
+        g2.setColor(Color.WHITE);
+        g2.drawString(label, textX, textY);
+    }
     // -----------------------------------------------------------------
     //  WALL TEXTURE LOGIC
     // -----------------------------------------------------------------
