@@ -11,7 +11,7 @@ public class MovementManager {
     public MovementManager() {}
 
     public boolean updateActorPositions(GameState state, InputHandler input, GameMap map, SoundManager sound, int tileSize) {
-        boolean moveStarted = handlePlayerInput(state, input, sound, tileSize);
+        boolean moveStarted = handlePlayerInput(state, input, sound, map, tileSize);
 
         updatePacmanPosition(state);
         checkPacmanBounds(state, map, tileSize);
@@ -34,22 +34,29 @@ public class MovementManager {
         return moveStarted;
     }
 
-    private boolean handlePlayerInput(GameState state, InputHandler input, SoundManager sound, int tileSize) {
+    private boolean handlePlayerInput(GameState state, InputHandler input, SoundManager sound, GameMap map, int tileSize) {
         if (state.pacman.isMoving) return false;
 
         Direction nextDir = input.getDirection();
         if (nextDir != Direction.NONE) {
-            return attemptMove(state, nextDir, sound, tileSize);
+            return attemptMove(state, nextDir, sound, map, tileSize);
         }
         return false;
     }
 
-    private boolean attemptMove(GameState state, Direction dir, SoundManager sound, int tileSize) {
+    private boolean attemptMove(GameState state, Direction dir, SoundManager sound, GameMap map, int tileSize) {
         int dx = dir.getDx(tileSize);
         int dy = dir.getDy(tileSize);
 
         int newX = state.pacman.x + dx;
         int newY = state.pacman.y + dy;
+
+        int boardW = map.getColumnCount() * tileSize;
+        int boardH = map.getRowCount() * tileSize;
+
+        if (newX < 0 || newY < 0 || newX > boardW - state.pacman.width || newY > boardH - state.pacman.height) {
+            return false;
+        }
 
         // Check collision at the target TILE
         Entity tempTarget = new Entity(null, newX, newY, state.pacman.width, state.pacman.height);
@@ -90,10 +97,19 @@ public class MovementManager {
         int boardH = map.getRowCount() * tileSize;
         Actor p = state.pacman;
 
+        int originalX = p.x;
+        int originalY = p.y;
+
         if (p.x < 0) p.x = 0;
         if (p.y < 0) p.y = 0;
         if (p.x + p.width > boardW) p.x = boardW - p.width;
         if (p.y + p.height > boardH) p.y = boardH - p.height;
+
+        if (p.x != originalX || p.y != originalY) {
+            p.targetX = p.x;
+            p.targetY = p.y;
+            p.isMoving = false;
+        }
     }
 
     // Unified method for Ghosts and Boss
