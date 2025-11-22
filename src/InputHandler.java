@@ -14,6 +14,9 @@ public class InputHandler implements KeyListener {
         return Direction.NONE;
     }
 
+    public boolean isSprintPressed() {
+        return pressedKeys.contains(KeyEvent.VK_SPACE);
+    }
     public void clear() { pressedKeys.clear(); }
     public boolean anyKeyPressed() { return !pressedKeys.isEmpty(); }
 

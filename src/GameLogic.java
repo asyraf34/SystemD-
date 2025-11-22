@@ -50,10 +50,13 @@ public class GameLogic {
             if (proj != null) state.projectiles.add(proj);
         }
 
-        // 5. Movement
+        // 5. Sprint Logic
+        updateSprintState();
+
+        // 6. Movement
         boolean moveStarted = movementManager.updateActorPositions(state, inputHandler, gameMap, soundManager, GameConstants.TILE_SIZE);
 
-        // 6. Collisions
+        // 7. Collisions
         collisionManager.checkFoodCollisions(state, soundManager);
         boolean knifePicked = collisionManager.checkKnifeCollisions(state);
         if (knifePicked) soundManager.playEffect("audio/knife_pick.wav");
@@ -62,18 +65,19 @@ public class GameLogic {
         int projRes = (state.boss != null && !state.projectiles.isEmpty()) ? collisionManager.checkProjectileCollisions(state, soundManager) : CollisionManager.GHOST_COLLISION_NONE;
         int ghostRes = collisionManager.checkGhostCollisions(state, soundManager);
 
-        // 7. Update Pacman Image
+        // 8. Update Pacman Image
         boolean ghostKilled = (ghostRes == CollisionManager.GHOST_COLLISION_GHOST_KILLED || bossRes == CollisionManager.GHOST_COLLISION_GHOST_KILLED);
         if (moveStarted || knifePicked || ghostKilled) {
             updatePacmanImage();
         }
 
-        // 8. Check Life Lost
+        // 9. Check Life Lost
         boolean lifeLost = (ghostRes == CollisionManager.GHOST_COLLISION_LIFE_LOST ||
                 bossRes == CollisionManager.GHOST_COLLISION_LIFE_LOST ||
                 projRes == CollisionManager.GHOST_COLLISION_LIFE_LOST);
 
         if (lifeLost) {
+            resetSprintState();
             if (state.lives <= 0) {
                 state.gameOver = true;
                 inputHandler.clear();
@@ -83,7 +87,7 @@ public class GameLogic {
             }
         }
 
-        // 9. Check Win
+        // 10. Check Win
         if (state.foods.isEmpty() && !state.gameWon && !state.interLevel) {
             state.nextLevelToStart = state.currentLevel + 1;
             if (state.nextLevelToStart > gameMap.getLevelCount()) {
@@ -96,6 +100,46 @@ public class GameLogic {
                 inputHandler.clear();
             }
         }
+    }
+    private void updateSprintState() {
+        if (state.pacman == null) return;
+
+        if (state.sprintCooldownTicks > 0) state.sprintCooldownTicks--;
+
+        if (state.sprintActive) {
+            if (state.sprintTicksRemaining > 0) {
+                state.sprintTicksRemaining--;
+            }
+
+            if (state.sprintTicksRemaining <= 0) {
+                endSprintWithCooldown();
+            }
+            return;
+        }
+
+        if (state.sprintCooldownTicks == 0 && inputHandler.isSprintPressed()) {
+            startSprint();
+        }
+    }
+
+    private void startSprint() {
+        state.sprintActive = true;
+        state.sprintTicksRemaining = GameConstants.TIMER_SPRINT_DURATION;
+        state.pacman.speed = GameConstants.SPEED_PACMAN_SPRINT;
+    }
+
+    private void endSprintWithCooldown() {
+        state.sprintActive = false;
+        state.sprintTicksRemaining = 0;
+        state.sprintCooldownTicks = GameConstants.TIMER_SPRINT_COOLDOWN;
+        state.pacman.speed = GameConstants.SPEED_PACMAN;
+    }
+
+    private void resetSprintState() {
+        state.sprintActive = false;
+        state.sprintTicksRemaining = 0;
+        state.sprintCooldownTicks = 0;
+        if (state.pacman != null) state.pacman.speed = GameConstants.SPEED_PACMAN;
     }
 
     private void updatePacmanImage() {

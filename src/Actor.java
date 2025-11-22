@@ -16,6 +16,7 @@ public class Actor extends Entity {
 
     public boolean isMoving = false;
     public int targetX, targetY;
+    public MovementType movementType = MovementType.SMART;
 
     public Actor(Image image, int x, int y, int width, int height, int speed) {
         super(image, x, y, width, height);
