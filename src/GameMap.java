@@ -64,21 +64,21 @@ public class GameMap {
 
             "XXXXXXXXXXXXXXXXXXX",
             "X P               X",
-            "X X XXXXXXXXXXXXX X",
+            "X X XXXXXXXXXXX X X",
             "X                 X",
-            "X X X X   X   X X X",
+            "X X             X X",
             "X                 X",
-            "X X X X   X   X X X",
+            "X X             X X",
             "X                 X",
-            "X X X X   X   X X X",
-            "X       B         X",
-            "X X X X   X   X X X",
+            "X X             X X",
+            "X        B        X",
+            "X X             X X",
             "X                 X",
-            "X X X X   X   X X X",
+            "X X             X X",
             "X                 X",
-            "X X X X   X   X X X",
+            "X X             X X",
             "X                 X",
-            "X X XXXXXXXXXXXXX X",
+            "X X XXXXXXXXXXX X X",
             "X                 X",
             "X XXXXXXXXXXXXXXX X",
             "X                 X",
@@ -99,7 +99,7 @@ public class GameMap {
     public String[] getMapData(int level) {
         if (level < 1 || level > levelMaps.size()) {
             // Handle error or return a default, e.g., level 1
-            return levelMaps.get(0);
+            return levelMaps.getFirst();
         }
         return levelMaps.get(level - 1);
     }

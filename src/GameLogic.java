@@ -1,3 +1,5 @@
+import java.util.List;
+
 public class GameLogic {
     private final GameState state;
     private final GameMap gameMap;
@@ -45,9 +47,11 @@ public class GameLogic {
             if (state.boss.isReflecting()) state.boss.image = assetManager.getBossReflectImage();
             else state.boss.image = assetManager.getBossImage();
 
-            // Boss Attack
-            Actor proj = state.boss.performLongRangeAttack(state.pacman, assetManager.getProjectileImage());
-            if (proj != null) state.projectiles.add(proj);
+            // Boss Attack (Handle Multiple Projectiles)
+            List<Actor> projs = state.boss.performLongRangeAttack(state.pacman, assetManager.getProjectileImage());
+            if (projs != null) {
+                state.projectiles.addAll(projs);
+            }
         }
 
         // 5. Sprint Logic
