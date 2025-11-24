@@ -47,7 +47,7 @@ public class GameLogic {
             if (state.boss.isReflecting()) state.boss.image = assetManager.getBossReflectImage();
             else state.boss.image = assetManager.getBossImage();
 
-            // Boss Attack (Handle Multiple Projectiles)
+            // Boss Attack
             List<Actor> projs = state.boss.performLongRangeAttack(state.pacman, assetManager.getProjectileImage());
             if (projs != null) {
                 state.projectiles.addAll(projs);

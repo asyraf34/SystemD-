@@ -2,6 +2,7 @@ import java.util.HashSet;
 import java.util.ArrayList;
 import java.util.List;
 
+
 public class GameState {
     public int score = 0;
     public int lives = 3;

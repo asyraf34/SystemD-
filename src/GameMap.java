@@ -10,7 +10,6 @@ public class GameMap {
     private final int rowCount;
     private final int columnCount;
 
-    // All map strings are now private and final
     private static final String[] tileMapLevel1 = {
             "XXXXXXXXXXXXXXXXXXX",
             "X        X        X",
@@ -36,7 +35,6 @@ public class GameMap {
     };
 
     private static final String[] tileMapLevel2 = {
-            // ... (level 2 string array) ...
             "XXXXXXXXXXXXXXXXXXX",
             "X       b       X X",
             "X P X XXXXX X   X X",
@@ -61,7 +59,6 @@ public class GameMap {
     };
 
     private static final String[] tileMapLevel3 = {
-
             "XXXXXXXXXXXXXXXXXXX",
             "X P               X",
             "X X XXXXXXXXXXX X X",

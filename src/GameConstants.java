@@ -1,5 +1,4 @@
 public class GameConstants {
-
     // --- Dimensions ---
     public static final int TILE_SIZE = 32;
     public static final int SCREEN_WIDTH = 19 * TILE_SIZE;  // Based on map columns

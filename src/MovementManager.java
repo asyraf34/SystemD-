@@ -276,7 +276,7 @@ public class MovementManager {
                 }
             }
 
-            // --- Apply Movement ---
+            // apply movement
             proj.x += proj.velocityX;
             proj.y += proj.velocityY;
 

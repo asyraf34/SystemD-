@@ -9,7 +9,6 @@ public enum Direction {
             default: return 0;
         }
     }
-
     public int getDy(int speed) {
         switch (this) {
             case UP: return -speed;

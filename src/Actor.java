@@ -5,7 +5,6 @@ import java.awt.Image;
  * Extends Entity and adds movement, direction, and state.
  */
 public class Actor extends Entity {
-
     public final int startX;
     public final int startY;
     public Direction direction = Direction.NONE;

@@ -35,7 +35,7 @@ public class CollisionManager {
         return false;
     }
 
-    // --- 2. Entity Collisions (Ghost, Boss, Projectile) ---
+    // 2. Entity Collisions (Ghost, Boss, Projectile)
 
     public int checkGhostCollisions(GameState state, SoundManager soundManager) {
         Iterator<Actor> it = state.ghosts.iterator();
@@ -105,7 +105,7 @@ public class CollisionManager {
         return GHOST_COLLISION_NONE;
     }
 
-    // --- 3. Private Helper Methods (Reduces Duplication) ---
+    // 3. Private Helper Methods (Reduces Duplication)
 
     private int handleLifeLost(GameState state, SoundManager sound) {
         state.lives--;

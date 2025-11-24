@@ -3,7 +3,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Boss extends Actor {
-
     // --- Configuration ---
     private static final int STARTING_LIVES = GameConstants.BOSS_LIVES;
     private static final int PROJECTILE_SIZE = 16;
