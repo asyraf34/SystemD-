@@ -49,8 +49,8 @@ public class App {
         frame.add(menuPanel);
         frame.setVisible(true);
 
-            LOGGER.info("Starting game loop.");
-        cardLayout.show(cards, "MENU");
+        LOGGER.info("Starting game loop.");
+        cardLayout.show(menuPanel, "MENU");
         menu.requestFocusInWindow();
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Uncaught exception during application startup.", e);
