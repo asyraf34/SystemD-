@@ -2,7 +2,7 @@ import javax.swing.*;
 import java.awt.*;
 
 public class App {
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] args) {
         int rowCount = 21;
         int columnCount = 19;
         int tileSize = 32;
@@ -11,30 +11,41 @@ public class App {
         int boardHeight = rowCount * tileSize + scoreboardHeight;
 
         JFrame frame = new JFrame("Pac Man");
-        // frame.setVisible(true);
         frame.setSize(boardWidth, boardHeight);
         frame.setLocationRelativeTo(null);
-        frame.setResizable(true);
+        frame.setResizable(false);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
+        // Card container
         CardLayout cardLayout = new CardLayout();
-        JPanel menuPanel  = new JPanel(cardLayout);
-        PacMan pacmanGame = new PacMan();
+        JPanel cards = new JPanel(cardLayout);
 
+        String story = ReadStoryFile.getStoryText();
+
+        // MENU PANEL
         MenuPanel menu = new MenuPanel(() -> {
-            cardLayout.show(menuPanel, "GAME");
-            pacmanGame.setFocusable(true);
-            pacmanGame.requestFocusInWindow();
+            // When user presses ENTER on the menu, go to the cutscene
+            CutscenePanel cutscene = new CutscenePanel(story, () -> {
+                // This runs when ENTER is pressed inside CutscenePanel
+                PacMan pacmanGame = new PacMan();
+                cards.add(pacmanGame, "GAME");
+                cardLayout.show(cards, "GAME");
+                pacmanGame.requestFocusInWindow();
+            });
+
+            cards.add(cutscene, "CUTSCENE");
+            cardLayout.show(cards, "CUTSCENE");
+            cutscene.requestFocusInWindow();
         });
 
-        menuPanel.add(menu, "MENU");
-        menuPanel.add(pacmanGame, "GAME");
+        // Add menu card
+        cards.add(menu, "MENU");
 
-        frame.add(menuPanel);
-        frame.pack();
+        frame.add(cards);
         frame.setVisible(true);
 
-        cardLayout.show(menuPanel, "MENU");
-
+        // Start on the menu
+        cardLayout.show(cards, "MENU");
+        menu.requestFocusInWindow();
     }
 }

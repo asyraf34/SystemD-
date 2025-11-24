@@ -1,22 +1,25 @@
-    import java.io.IOException;
-    import java.nio.file.Files;
-    import java.nio.file.Path;
-    import java.nio.file.Paths;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
-    public class ReadStoryFile {
+public class ReadStoryFile {
 
-        String filePath = "res/storyText.txt";
-        static String fileContent;
-        ReadStoryFile() {
-            try {
-                Path path = Paths.get(filePath);
-                this.fileContent = Files.readString(path);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
+    private static final String filePath = "res/storyText.txt";
+    private static String fileContent;
 
-        public static String getStoryText() {
-            return fileContent;
+    // Load once at startup
+    static {
+        try {
+            Path path = Paths.get(filePath);
+            fileContent = Files.readString(path);
+        } catch (IOException e) {
+            e.printStackTrace();
+            fileContent = ""; // fail-safe
         }
     }
+
+    public static String getStoryText() {
+        return fileContent;
+    }
+}

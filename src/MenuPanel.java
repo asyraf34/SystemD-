@@ -11,9 +11,7 @@ public class MenuPanel extends JPanel implements ActionListener {
 
     private final int deltaY = 30;
 
-    private CustomFont customFont;
-
-    private Font TestFont;
+    private final CustomFont customFont;
 
     public MenuPanel(Runnable startGameCallback) {
         setFocusable(true);
