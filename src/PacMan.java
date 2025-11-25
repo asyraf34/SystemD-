@@ -76,9 +76,13 @@ public class PacMan extends JPanel {
         state.projectiles.clear();
         state.boss = null;
         state.animations.clear();
+        state.sprintActive = false;
+        state.sprintTicksRemaining = 0;
+        state.sprintCooldownTicks = 0;
 
         String[] currentMap = gameMap.getMapData(state.currentLevel);
         boolean[][] wallMatrix = new boolean[gameMap.getRowCount()][gameMap.getColumnCount()];
+        boolean[][] walkableGrid = new boolean[gameMap.getRowCount()][gameMap.getColumnCount()];
 
         for (int r = 0; r < gameMap.getRowCount(); r++) {
             String row = currentMap[r];
@@ -87,12 +91,13 @@ public class PacMan extends JPanel {
                 int x = c * GameConstants.TILE_SIZE;
                 int y = r * GameConstants.TILE_SIZE;
 
+                boolean isWall = (tileChar == 'X');
+                wallMatrix[r][c] = isWall;
+                walkableGrid[r][c] = !isWall;
+
                 switch (tileChar) {
                     case 'B':
                         state.boss = new Boss(assetManager.getBossImage(), x, y, GameConstants.TILE_SIZE, GameConstants.TILE_SIZE, GameConstants.SPEED_BOSS);
-                        break;
-                    case 'X':
-                        wallMatrix[r][c] = true;
                         break;
                     case 'P':
                         state.pacman = new Actor(assetManager.getPacmanRightImage(), x, y, GameConstants.TILE_SIZE, GameConstants.TILE_SIZE, GameConstants.SPEED_PACMAN);
@@ -105,6 +110,8 @@ public class PacMan extends JPanel {
                 }
             }
         }
+
+        state.walkableGrid = walkableGrid;
 
         // Generate Walls
         for (int r = 0; r < gameMap.getRowCount(); r++) {
@@ -138,6 +145,9 @@ public class PacMan extends JPanel {
                     else if (tileChar == 'r') ghostImage = assetManager.getRedGhostImage();
 
                     Actor ghost = new Actor(ghostImage, c * GameConstants.TILE_SIZE, r * GameConstants.TILE_SIZE, GameConstants.TILE_SIZE, GameConstants.TILE_SIZE, speed);
+
+                    // split movement into SMART and RANDOM; even index->SMART, odd index->RANDOM
+                    ghost.movementType = (state.ghosts.size() % 2 == 0) ? MovementType.SMART : MovementType.RANDOM;
                     ghost.direction = directions[random.nextInt(directions.length)];
                     ghost.updateVelocity();
                     state.ghosts.add(ghost);

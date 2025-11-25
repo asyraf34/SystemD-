@@ -70,6 +70,13 @@ public class MenuPanel extends JPanel implements ActionListener {
         String escMsg = "Press ESC to Exit";
         int escWidth = g2.getFontMetrics().stringWidth(escMsg);
         g2.drawString(escMsg, (getWidth() - escWidth) / 2, 400 + deltaY);
+
+        // Pause hint
+        g2.setFont(customFont.deriveFont(Font.PLAIN, 20));
+        g2.setColor(Color.GRAY);
+        String pauseMsg = "Press 'P' to Pause";
+        int pauseWidth = g2.getFontMetrics().stringWidth(pauseMsg);
+        g2.drawString(pauseMsg, (getWidth() - pauseWidth) / 2, 430 + deltaY);
     }
 
     @Override

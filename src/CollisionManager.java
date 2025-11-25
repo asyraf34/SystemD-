@@ -1,10 +1,12 @@
 import java.util.Iterator;
+import java.util.logging.Logger;
 
 public class CollisionManager {
 
     public static final int GHOST_COLLISION_NONE = 0;
     public static final int GHOST_COLLISION_LIFE_LOST = 1;
     public static final int GHOST_COLLISION_GHOST_KILLED = 2;
+    private static final Logger LOGGER = Logger.getLogger(CollisionManager.class.getSimpleName());
 
     // --- 1. Simple Collisions (Food & Knife) ---
 
@@ -40,9 +42,10 @@ public class CollisionManager {
         while (it.hasNext()) {
             Actor ghost = it.next();
             if (state.pacman.collidesWith(ghost)) {
-
+                LOGGER.info( "hasWeapon = " + state.hasWeapon + ", " + "police collides with mafia = " + state.pacman.collidesWith(ghost));
                 // CASE A: Pac-Man has weapon -> Kill Ghost
                 if (state.hasWeapon && state.knifeCount > 0) {
+                    LOGGER.info( "hasWeapon = " + state.hasWeapon + ", " + "police collides with mafia = " + state.pacman.collidesWith(ghost));
                     consumeWeapon(state);
                     triggerDeathAnimation(state, ghost);
                     it.remove();
@@ -51,15 +54,12 @@ public class CollisionManager {
                 }
 
                 // CASE B: No weapon -> Pac-Man dies
+                LOGGER.info( "hasWeapon = " + state.hasWeapon + ", " + "police collides with mafia = " + state.pacman.collidesWith(ghost));
                 return handleLifeLost(state, soundManager);
             }
         }
         return GHOST_COLLISION_NONE;
     }
-
-    // src/CollisionManager.java
-
-    // src/CollisionManager.java
 
     public int checkBossCollisions(GameState state, SoundManager soundManager) {
         if (state.boss == null || !state.pacman.collidesWith(state.boss)) {
