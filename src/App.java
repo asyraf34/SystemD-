@@ -25,37 +25,26 @@ public class App {
             LOGGER.info("Creating game view and menu panels.");
             CardLayout cardLayout = new CardLayout();
             JPanel menuPanel  = new JPanel(cardLayout);
+            PacMan pacmanGame = new PacMan();
 
-        String story = ReadStoryFile.getStoryText();
-
-        // MENU PANEL
-        MenuPanel menu = new MenuPanel(() -> {
-            // When user presses ENTER on the menu, go to the cutscene
-            CutscenePanel cutscene = new CutscenePanel(story, () -> {
-                // This runs when ENTER is pressed inside CutscenePanel
-                PacMan pacmanGame = new PacMan();
-                menuPanel.add(pacmanGame, "GAME");
+            MenuPanel menu = new MenuPanel(() -> {
                 cardLayout.show(menuPanel, "GAME");
+                pacmanGame.setFocusable(true);
                 pacmanGame.requestFocusInWindow();
             });
 
-            menuPanel.add(cutscene, "CUTSCENE");
-            cardLayout.show(menuPanel, "CUTSCENE");
-            cutscene.requestFocusInWindow();
-        });
+            menuPanel.add(menu, "MENU");
+            menuPanel.add(pacmanGame, "GAME");
 
-        menuPanel.add(menu, "MENU");
+            frame.add(menuPanel);
+            frame.pack();
+            frame.setVisible(true);
 
-        frame.add(menuPanel);
-        frame.setVisible(true);
-
-        LOGGER.info("Starting game loop.");
-        cardLayout.show(menuPanel, "MENU");
-        menu.requestFocusInWindow();
+            LOGGER.info("Starting game loop.");
+            cardLayout.show(menuPanel, "MENU");
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Uncaught exception during application startup.", e);
             System.exit(1);
         }
-
     }
 }
