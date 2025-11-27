@@ -15,6 +15,10 @@ public class Renderer {
     private final int bottomBarH;
     private final int totalH;
 
+    // Pause support
+    private final PauseManager pauseManager = PauseManager.getInstance();
+    private final PauseOverlay pauseOverlay = new PauseOverlay();
+
     public Renderer(AssetManager assetManager, GameMap gameMap, int tileSize) {
         this.assetManager = assetManager;
         this.gameMap = gameMap;
@@ -51,6 +55,67 @@ public class Renderer {
 
         // 4. Draw HUD
         drawHUD(g, state);
+
+        // ----------------------------
+        // Pause snapshot capture + overlay
+        // Inserted here so it's executed after the normal frame has been drawn,
+        // but before the buffer is shown. Uses the existing draw routines to
+        // produce a snapshot that matches the on-screen content.
+        // ----------------------------
+        {
+            Graphics2D g2 = (g instanceof Graphics2D) ? (Graphics2D) g : (Graphics2D) g.create();
+
+            // Capture snapshot once when entering pause
+            if (pauseManager.isPaused() && pauseManager.getPauseSnapshot() == null) {
+                BufferedImage snap = new BufferedImage(boardWidth, totalH, BufferedImage.TYPE_INT_ARGB);
+                Graphics2D gs = snap.createGraphics();
+
+                // Replicate the same drawing steps into the snapshot so it matches on-screen.
+                gs.drawImage(assetManager.getBackgroundImage(), 0, 0, boardWidth, totalH, null);
+                drawBarBackgrounds(gs);
+
+                Graphics2D gmSnap = (Graphics2D) gs.create();
+                gmSnap.translate(0, topBarH);
+                drawEntities(gmSnap, state);
+                gmSnap.dispose();
+
+                if (state.animations != null && !state.animations.isEmpty()) {
+                    Graphics2D gAnimSnap = (Graphics2D) gs.create();
+                    gAnimSnap.translate(0, topBarH);
+                    for (DeathAnimation da : state.animations) {
+                        da.render(gAnimSnap);
+                    }
+                    gAnimSnap.dispose();
+                }
+
+                // Draw HUD into snapshot as well (omit if you want HUD sharp)
+                drawHUD(gs, state);
+
+                gs.dispose();
+                pauseManager.setPauseSnapshot(snap);
+            }
+
+            // If paused, draw overlay on top of current frame
+            if (pauseManager.isPaused()) {
+                BufferedImage snap = pauseManager.getPauseSnapshot();
+                if (snap != null) {
+                    pauseOverlay.renderPaused(g2, snap, boardWidth, totalH);
+                } else {
+                    Composite old = g2.getComposite();
+                    g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.6f));
+                    g2.setColor(Color.BLACK);
+                    g2.fillRect(0, 0, boardWidth, totalH);
+                    g2.setComposite(old);
+                    g2.setColor(Color.WHITE);
+                    g2.setFont(new Font("SansSerif", Font.BOLD, 48));
+                    FontMetrics fm = g2.getFontMetrics();
+                    String paused = "PAUSED";
+                    int px = (boardWidth - fm.stringWidth(paused)) / 2;
+                    int py = topBarH + boardHeight / 2;
+                    g2.drawString(paused, px, py);
+                }
+            }
+        }
     }
 
     private void drawBarBackgrounds(Graphics g) {
