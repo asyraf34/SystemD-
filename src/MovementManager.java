@@ -19,11 +19,6 @@ public class MovementManager {
         moveAiActors(state, state.ghosts, state.walls, map, tileSize);
 
         if (state.boss != null) {
-            //HashSet<Actor> bossSet = new HashSet<>();
-            //bossSet.add(state.boss);
-            //moveAiActors(state, bossSet, state.walls, map, tileSize); -> allow AI movement for boss
-
-            // boss stays stationary
             state.boss.direction = Direction.NONE;
             state.boss.velocityX = 0;
             state.boss.velocityY = 0;
@@ -174,19 +169,11 @@ public class MovementManager {
             }
         }
     }
-    //
+
     private boolean isAlignedToTile(Actor actor, int tileSize) {
         return actor.x % tileSize == 0 && actor.y % tileSize == 0;
     }
 
-    /**
-     * SMART movement
-     * The movement logic is a greedy Manhattan-distance chase heuristic
-     * @param actor
-     * @param state
-     * @param tileSize
-     * @return
-     */
     private Direction chooseDirectionTowardTarget(Actor actor, GameState state, int tileSize) {
         if (actor == null || actor.speed == 0) return null;
         if (state == null || state.pacman == null || state.walkableGrid == null) return null;
@@ -227,15 +214,6 @@ public class MovementManager {
         return row >= 0 && row < rows && col >= 0 && col < cols && walkableGrid[row][col];
     }
 
-    /**
-     * method for random movement
-     * @param actor
-     * @param state
-     * @param tileSize
-     * @param boardW
-     * @param boardH
-     * @return
-     */
     private Direction chooseRandomDirection(Actor actor, GameState state, int tileSize, int boardW, int boardH) {
         if (actor == null || state == null || state.walkableGrid == null) return null;
 
@@ -268,7 +246,37 @@ public class MovementManager {
 
     private void moveProjectiles(GameState state) {
         HashSet<Actor> toRemove = new HashSet<>();
+
+        // Homing Factor: Higher = Slower turning (more inertia), Lower = Snappier
+        double homingInertia = 5.0;
+
         for (Actor proj : state.projectiles) {
+
+            // --- Homing Logic ---
+            if (state.pacman != null) {
+                double dx = (state.pacman.x + state.pacman.width / 2.0) - (proj.x + proj.width / 2.0);
+                double dy = (state.pacman.y + state.pacman.height / 2.0) - (proj.y + proj.height / 2.0);
+                double dist = Math.sqrt(dx * dx + dy * dy);
+
+                if (dist > 0) {
+                    // Calculate ideal velocity to hit target
+                    double desiredVx = (dx / dist) * proj.speed;
+                    double desiredVy = (dy / dist) * proj.speed;
+
+                    // Blend current velocity with desired velocity (Steering)
+                    double newVx = (proj.velocityX * homingInertia + desiredVx) / (homingInertia + 1);
+                    double newVy = (proj.velocityY * homingInertia + desiredVy) / (homingInertia + 1);
+
+                    // Normalize back to projectile speed
+                    double newSpeed = Math.sqrt(newVx * newVx + newVy * newVy);
+                    if (newSpeed > 0) {
+                        proj.velocityX = (int) ((newVx / newSpeed) * proj.speed);
+                        proj.velocityY = (int) ((newVy / newSpeed) * proj.speed);
+                    }
+                }
+            }
+
+            // apply movement
             proj.x += proj.velocityX;
             proj.y += proj.velocityY;
 

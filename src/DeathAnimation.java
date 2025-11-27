@@ -1,11 +1,7 @@
-/*
- * DeathAnimation.java
- *
- * A refactored, maintainable procedural death animation.
+/* DeathAnimation.java
  * - fades + shrinks a snapshot of the killed actor image
  * - spawns particles that manage their own physics
- * - shows a floating score popup
- */
+ * - shows a floating score popup*/
 import java.awt.*;
 import java.awt.geom.AffineTransform;
 import java.util.ArrayList;

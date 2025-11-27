@@ -351,5 +351,4 @@ public class Renderer {
         g2d.dispose();
         return texture;
     }
-
 }

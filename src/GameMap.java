@@ -10,7 +10,6 @@ public class GameMap {
     private final int rowCount;
     private final int columnCount;
 
-    // All map strings are now private and final
     private static final String[] tileMapLevel1 = {
             "XXXXXXXXXXXXXXXXXXX",
             "X        X        X",
@@ -36,7 +35,6 @@ public class GameMap {
     };
 
     private static final String[] tileMapLevel2 = {
-            // ... (level 2 string array) ...
             "XXXXXXXXXXXXXXXXXXX",
             "X       b       X X",
             "X P X XXXXX X   X X",
@@ -61,24 +59,23 @@ public class GameMap {
     };
 
     private static final String[] tileMapLevel3 = {
-
             "XXXXXXXXXXXXXXXXXXX",
             "X P               X",
-            "X X XXXXXXXXXXXXX X",
+            "X X XXXXXXXXXXX X X",
             "X                 X",
-            "X X X X   X   X X X",
+            "X X             X X",
             "X                 X",
-            "X X X X   X   X X X",
+            "X X             X X",
             "X                 X",
-            "X X X X   X   X X X",
-            "X       B         X",
-            "X X X X   X   X X X",
+            "X X             X X",
+            "X        B        X",
+            "X X             X X",
             "X                 X",
-            "X X X X   X   X X X",
+            "X X             X X",
             "X                 X",
-            "X X X X   X   X X X",
+            "X X             X X",
             "X                 X",
-            "X X XXXXXXXXXXXXX X",
+            "X X XXXXXXXXXXX X X",
             "X                 X",
             "X XXXXXXXXXXXXXXX X",
             "X                 X",
@@ -99,7 +96,7 @@ public class GameMap {
     public String[] getMapData(int level) {
         if (level < 1 || level > levelMaps.size()) {
             // Handle error or return a default, e.g., level 1
-            return levelMaps.get(0);
+            return levelMaps.getFirst();
         }
         return levelMaps.get(level - 1);
     }
