@@ -10,7 +10,6 @@ public class GameMap {
     private final int rowCount;
     private final int columnCount;
 
-    // All map strings are now private and final
     private static final String[] tileMapLevel1 = {
             "XXXXXXXXXXXXXXXXXXX",
             "X        X        X",
@@ -22,7 +21,7 @@ public class GameMap {
             "OOOX X       X XOOO",
             "XXXX X XXrXX X  XXX",
             "O       bpo       O",
-            "XXXX X XXXXX   XXXX",
+            "XXXX X XX XX   XXXX",
             "OOOX X       X XOOO",
             "XXXX X XXXXX X XXXX",
             "X        X        X",
@@ -36,49 +35,47 @@ public class GameMap {
     };
 
     private static final String[] tileMapLevel2 = {
-            // ... (level 2 string array) ...
             "XXXXXXXXXXXXXXXXXXX",
             "X       b       X X",
             "X P X XXXXX X   X X",
             "X   X X   X X   X X",
-            "XX XX       XX XX X",
+            "XX XX       XXrXX X",
             "X   X XXXXX X   X X",
             "X X X   X   X X X X",
             "X X XXX X XXX X X X",
             "X X X   o   X X X X",
             "X   X       X     X",
-            "XXXXX Xp  X XXXXX X",
+            "XXXXX X   X XXXXX X",
             "O     XXXXX     O X",
             "XXXXX X   X XXXXX X",
             "X   X XX XX X   X X",
             "X X X       X X X X",
             "X X XXXX XXXX X X X",
-            "X X X   r   X X X X",
+            "X X X   p   X X X X",
             "X   X XX XX X   X X",
             "X XXX X   X XXX X X",
-            "X     X   X     X X",
+            "X     X   X     XpX",
             "XXXXXXXXXXXXXXXXXXX"
     };
 
     private static final String[] tileMapLevel3 = {
-            // ... (level 3 string array) ...
             "XXXXXXXXXXXXXXXXXXX",
             "X P               X",
-            "X XXXXXXXXXXXXXXX X",
+            "X X XXXXXXXXXXX X X",
+            "X                 X",
             "X X             X X",
+            "X                 X",
+            "X X             X X",
+            "X                 X",
+            "X X             X X",
+            "X        B        X",
+            "X X             X X",
+            "X                 X",
+            "X X             X X",
+            "X                 X",
+            "X X             X X",
+            "X                 X",
             "X X XXXXXXXXXXX X X",
-            "X X           X X X",
-            "X X X XXXXXXX X X X",
-            "X X X X     X X X X",
-            "X X X X X X X X X X",
-            "X X X X XrX X X X X",
-            "X X X X XXX X X X X",
-            "X X X X       X X X",
-            "X X X XXXXXXX X X X",
-            "X X X         X X X",
-            "X X XXXXXXXXXXX X X",
-            "X X               X",
-            "X XXXXXXXXXXXXXXX X",
             "X                 X",
             "X XXXXXXXXXXXXXXX X",
             "X                 X",
@@ -99,7 +96,7 @@ public class GameMap {
     public String[] getMapData(int level) {
         if (level < 1 || level > levelMaps.size()) {
             // Handle error or return a default, e.g., level 1
-            return levelMaps.get(0);
+            return levelMaps.get(1);
         }
         return levelMaps.get(level - 1);
     }

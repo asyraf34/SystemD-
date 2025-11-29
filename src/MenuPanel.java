@@ -3,21 +3,27 @@ import java.awt.*;
 import java.awt.event.*;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.Serial;
 
 public class MenuPanel extends JPanel implements ActionListener {
-
+    @Serial
+    private static final long serialVersionUID = 1L;
     private boolean showPressStart = true;    // blinking text
-    private Timer blinkTimer = new Timer(500, this); // blink every 0.5 sec
+    private final Timer blinkTimer = new Timer(500, this); // blink every 0.5 sec
 
-    private final int deltaY = 30;
-
-    private final CustomFont customFont;
+    Font customFont;
 
     public MenuPanel(Runnable startGameCallback) {
         setFocusable(true);
         setBackground(Color.BLACK);
 
-        customFont = new CustomFont(Font.TRUETYPE_FONT, 30);
+        try (InputStream is = getClass().getResourceAsStream("/04B_03__.ttf")) {
+            if (is != null) {
+                customFont = Font.createFont(Font.TRUETYPE_FONT, is);
+            }
+        } catch (FontFormatException | IOException e) {
+            e.printStackTrace();
+        }
 
         blinkTimer.start();
 
@@ -43,26 +49,34 @@ public class MenuPanel extends JPanel implements ActionListener {
 
         // Title
         g2.setColor(Color.YELLOW);
-        g2.setFont(customFont.getCustomFont().deriveFont(Font.BOLD, 72));
+        g2.setFont(customFont.deriveFont(Font.BOLD, 72));
         String title = "MAN - HUNT";
         int titleWidth = g2.getFontMetrics().stringWidth(title);
+        int deltaY = 30;
         g2.drawString(title, (getWidth() - titleWidth) / 2, 285 + deltaY);
 
         // Blinking text
         if (showPressStart) {
             g2.setColor(Color.WHITE);
-            g2.setFont(customFont.getCustomFont().deriveFont(Font.BOLD,32));
+            g2.setFont(customFont.deriveFont(Font.BOLD,32));
             String msg = "PRESS ENTER TO START";
             int msgWidth = g2.getFontMetrics().stringWidth(msg);
             g2.drawString(msg, (getWidth() - msgWidth) / 2, 350 + deltaY);
         }
 
         // Instructions
-        g2.setFont(customFont.getCustomFont().deriveFont(Font.PLAIN, 20));
+        g2.setFont(customFont.deriveFont(Font.PLAIN, 20));
         g2.setColor(Color.GRAY);
         String escMsg = "Press ESC to Exit";
         int escWidth = g2.getFontMetrics().stringWidth(escMsg);
         g2.drawString(escMsg, (getWidth() - escWidth) / 2, 400 + deltaY);
+
+        // Pause hint
+        g2.setFont(customFont.deriveFont(Font.PLAIN, 20));
+        g2.setColor(Color.GRAY);
+        String pauseMsg = "Press 'P' to Pause";
+        int pauseWidth = g2.getFontMetrics().stringWidth(pauseMsg);
+        g2.drawString(pauseMsg, (getWidth() - pauseWidth) / 2, 430 + deltaY);
     }
 
     @Override

@@ -1,28 +1,18 @@
 import java.awt.Image;
+import java.util.Objects;
 import javax.swing.ImageIcon;
 
 /**
  * Loads and provides access to all game image assets.
  */
 public class AssetManager {
-
     // All images are private
-    private Image backgroundImage;
-    private Image wallImage;
-    private Image blueGhostImage;
-    private Image orangeGhostImage;
-    private Image pinkGhostImage;
-    private Image redGhostImage;
-    private Image pacmanUpImage;
-    private Image pacmanDownImage;
-    private Image pacmanLeftImage;
-    private Image pacmanRightImage;
-    private Image foodImage;
-    private Image knifeImage;
-    private Image pacmanUpKnifeImage;
-    private Image pacmanDownKnifeImage;
-    private Image pacmanLeftKnifeImage;
-    private Image pacmanRightKnifeImage;
+    private Image backgroundImage, wallImage;
+    private Image blueGhostImage, orangeGhostImage, pinkGhostImage, redGhostImage;
+    private Image pacmanUpImage, pacmanDownImage, pacmanLeftImage, pacmanRightImage;
+    private Image pacmanUpKnifeImage, pacmanDownKnifeImage, pacmanLeftKnifeImage, pacmanRightKnifeImage;
+    private Image knifeImage, foodImage;
+    private Image BossImage, BossReflectImage, ProjectileImage;
 
     // Scaled food dimensions
     private int foodWidth;
@@ -36,33 +26,48 @@ public class AssetManager {
     }
 
     private void loadImages() {
-        backgroundImage = new ImageIcon(getClass().getResource("/background.png")).getImage();
-        wallImage = new ImageIcon(getClass().getResource("/wall.png")).getImage();
-        blueGhostImage = new ImageIcon(getClass().getResource("/blueGhost.png")).getImage();
-        orangeGhostImage = new ImageIcon(getClass().getResource("/orangeGhost.png")).getImage();
-        pinkGhostImage = new ImageIcon(getClass().getResource("/pinkGhost.png")).getImage();
-        redGhostImage = new ImageIcon(getClass().getResource("/redGhost.png")).getImage();
-        pacmanUpImage = new ImageIcon(getClass().getResource("/pacmanUp.png")).getImage();
-        pacmanDownImage = new ImageIcon(getClass().getResource("/pacmanDown.png")).getImage();
-        pacmanLeftImage = new ImageIcon(getClass().getResource("/pacmanLeft.png")).getImage();
-        pacmanRightImage = new ImageIcon(getClass().getResource("/pacmanRight.png")).getImage();
-        knifeImage = new ImageIcon(getClass().getResource("/knife.png")).getImage();
-        pacmanUpKnifeImage = new ImageIcon(getClass().getResource("/pacmanUp-with-knife.png")).getImage();
-        pacmanDownKnifeImage = new ImageIcon(getClass().getResource("/pacmanDown-with-knife.png")).getImage();
-        pacmanLeftKnifeImage = new ImageIcon(getClass().getResource("/pacmanLeft-with-knife.png")).getImage();
-        pacmanRightKnifeImage = new ImageIcon(getClass().getResource("/pacmanRight-with-knife.png")).getImage();
+        // 1. Load standard images using the helper method
+        backgroundImage       = loadImage("/background.png");
+        wallImage             = loadImage("/wall.png");
 
-        // Food is loaded separately for scaling
-        ImageIcon foodIcon = new ImageIcon(getClass().getResource(FOOD_IMAGE_RESOURCE));
+        blueGhostImage        = loadImage("/blueGhost.png");
+        orangeGhostImage      = loadImage("/orangeGhost.png");
+        pinkGhostImage        = loadImage("/pinkGhost.png");
+        redGhostImage         = loadImage("/redGhost.png");
+
+        pacmanUpImage         = loadImage("/pacmanUp.png");
+        pacmanDownImage       = loadImage("/pacmanDown.png");
+        pacmanLeftImage       = loadImage("/pacmanLeft.png");
+        pacmanRightImage      = loadImage("/pacmanRight.png");
+
+        knifeImage            = loadImage("/knife.png");
+
+        pacmanUpKnifeImage    = loadImage("/pacmanUp-with-knife.png");
+        pacmanDownKnifeImage  = loadImage("/pacmanDown-with-knife.png");
+        pacmanLeftKnifeImage  = loadImage("/pacmanLeft-with-knife.png");
+        pacmanRightKnifeImage = loadImage("/pacmanRight-with-knife.png");
+
+        BossImage             = loadImage("/BossImage.png");
+        BossReflectImage      = loadImage("/BossReflectImage.png");
+        ProjectileImage       = loadImage("/ProjectileImage.png");
+
+        // 2. Food is a special case (we need the dimensions from the Icon)
+        ImageIcon foodIcon = new ImageIcon(Objects.requireNonNull(getClass().getResource(FOOD_IMAGE_RESOURCE)));
         foodImage = foodIcon.getImage();
         foodWidth = foodIcon.getIconWidth();
         foodHeight = foodIcon.getIconHeight();
+    }
+
+    private Image loadImage(String path) {
+        return new ImageIcon(Objects.requireNonNull(getClass().getResource(path))).getImage();
     }
 
     private void scaleFoodImage(int tileSize) {
         double maxFoodCoverage = 0.6;
         int maxFoodWidth = (int) Math.round(tileSize * maxFoodCoverage);
         int maxFoodHeight = (int) Math.round(tileSize * maxFoodCoverage);
+
+        // Calculate scale to fit within max bounds while maintaining aspect ratio
         double widthScale = (double) maxFoodWidth / foodWidth;
         double heightScale = (double) maxFoodHeight / foodHeight;
         double scale = Math.min(1.0, Math.min(widthScale, heightScale));
@@ -75,7 +80,6 @@ public class AssetManager {
     }
 
     // --- Public Getters ---
-
     public Image getBackgroundImage() { return backgroundImage; }
     public Image getWallImage() { return wallImage; }
     public Image getBlueGhostImage() { return blueGhostImage; }
@@ -92,6 +96,9 @@ public class AssetManager {
     public Image getPacmanDownKnifeImage() { return pacmanDownKnifeImage; }
     public Image getPacmanLeftKnifeImage() { return pacmanLeftKnifeImage; }
     public Image getPacmanRightKnifeImage() { return pacmanRightKnifeImage; }
+    public Image getBossImage() { return BossImage; }
+    public Image getBossReflectImage() { return BossReflectImage; }
+    public Image getProjectileImage() { return ProjectileImage; }
 
     public int getFoodWidth() { return foodWidth; }
     public int getFoodHeight() { return foodHeight; }

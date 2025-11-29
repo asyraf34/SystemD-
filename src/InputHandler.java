@@ -2,62 +2,56 @@ import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.util.HashSet;
 
-/**
- * Manages all keyboard input for the game.
- * It listens for key presses and releases and provides simple
- * methods to check the current state of movement keys.
- */
 public class InputHandler implements KeyListener {
 
     private final HashSet<Integer> pressedKeys = new HashSet<>();
-    private String lastMoveSound = "audio/move.wav"; // Assuming this is your sound
+    private boolean pHeld = false;
 
-    // Public flags that the game can check
-    public boolean isUpPressed() {
-        return pressedKeys.contains(KeyEvent.VK_UP);
+    public Direction getDirection() {
+        if (pressedKeys.contains(KeyEvent.VK_W) || pressedKeys.contains(KeyEvent.VK_UP)) return Direction.UP;
+        if (pressedKeys.contains(KeyEvent.VK_S) || pressedKeys.contains(KeyEvent.VK_DOWN)) return Direction.DOWN;
+        if (pressedKeys.contains(KeyEvent.VK_A) || pressedKeys.contains(KeyEvent.VK_LEFT)) return Direction.LEFT;
+        if (pressedKeys.contains(KeyEvent.VK_D) || pressedKeys.contains(KeyEvent.VK_RIGHT)) return Direction.RIGHT;
+        return Direction.NONE;
     }
 
-    public boolean isDownPressed() {
-        return pressedKeys.contains(KeyEvent.VK_DOWN);
+    public boolean isSprintPressed() {
+        return pressedKeys.contains(KeyEvent.VK_SPACE);
     }
-
-    public boolean isLeftPressed() {
-        return pressedKeys.contains(KeyEvent.VK_LEFT);
-    }
-
-    public boolean isRightPressed() {
-        return pressedKeys.contains(KeyEvent.VK_RIGHT);
-    }
-
-    /**
-     * Optional: A way for the game to ask if a sound should be played.
-     * This is just an example of moving logic here.
-     * You would call this and reset() from your game loop.
-     */
-    public boolean didMoveKeyRelease(SoundManager soundManager) {
-        return false;
-    }
+    public void clear() { pressedKeys.clear(); }
+    public boolean anyKeyPressed() { return !pressedKeys.isEmpty(); }
 
     @Override
-    public void keyTyped(KeyEvent e) {
-        // Not used
-    }
+    public void keyTyped(KeyEvent e) {}
+    //@Override
+    //public void keyPressed(KeyEvent e) { pressedKeys.add(e.getKeyCode()); }
+    //@Override
+    //public void keyReleased(KeyEvent e) { pressedKeys.remove(e.getKeyCode()); }
 
     @Override
     public void keyPressed(KeyEvent e) {
-        pressedKeys.add(e.getKeyCode());
-    }
+        int kc = e.getKeyCode();
 
+        // Handle pause toggle on 'P' (case-insensitive)
+        if (kc == KeyEvent.VK_P) {
+            if (!pHeld) {
+                PauseManager.getInstance().togglePaused(); // ensure PauseManager class is present
+                pHeld = true;
+            }
+            // don't add 'P' into pressedKeys (it is a control key)
+            return;
+        }
+
+        // existing behavior for movement / sprint etc.
+        pressedKeys.add(kc);
+    }
     @Override
     public void keyReleased(KeyEvent e) {
-        pressedKeys.remove(e.getKeyCode());
-
+        int kc = e.getKeyCode();
+        if (kc == KeyEvent.VK_P) {
+            pHeld = false;
+            return;
+        }
+        pressedKeys.remove(kc);
     }
-    public void clear() {
-        pressedKeys.clear();
-    }
-    public boolean anyKeyPressed() {
-        return !pressedKeys.isEmpty();
-    }
-
 }

@@ -1,69 +1,49 @@
 import java.awt.*;
 import java.awt.image.BufferedImage;
-import java.util.HashSet;
 import javax.swing.JPanel;
 
-/**
- * Manages all rendering for the game.
- * It draws the game state (entities, actors, HUD) onto the panel.
- */
 public class Renderer {
 
     private final AssetManager assetManager;
     private final GameMap gameMap;
     private final int tileSize;
-    private int boardWidth;
-    private int boardHeight;
 
+    // --- Pre-calculated Dimensions
+    private final int boardWidth;
+    private final int boardHeight;
+    private final int topBarH;
+    private final int bottomBarH;
+    private final int totalH;
+
+    // Pause support
+    private final PauseManager pauseManager = PauseManager.getInstance();
+    private final PauseOverlay pauseOverlay = new PauseOverlay();
 
     public Renderer(AssetManager assetManager, GameMap gameMap, int tileSize) {
         this.assetManager = assetManager;
         this.gameMap = gameMap;
         this.tileSize = tileSize;
+
+        // 1. Calculate dimensions here in the constructor
+        this.boardWidth  = tileSize * gameMap.getColumnCount();
+        this.boardHeight = tileSize * gameMap.getRowCount();
+        this.topBarH     = Math.max(32, tileSize);
+        this.bottomBarH  = Math.max(40, (int)(tileSize * 1.2));
+        this.totalH      = topBarH + boardHeight + bottomBarH;
     }
 
-    /**
-     * Main draw method called by PacMan's paintComponent.
-     */
-    public void drawGame(Graphics g, JPanel panel, PacMan.GameState state) {
-        final int boardWidth  = tileSize * gameMap.getColumnCount();
-        final int boardHeight = tileSize * gameMap.getRowCount();
-        final int topBarH     = Math.max(32, tileSize);
-        final int bottomBarH  = Math.max(40, (int)(tileSize * 1.2));
-        final int totalH      = topBarH + boardHeight + bottomBarH;
-
-        // Full background across panel
+    public void drawGame(Graphics g, JPanel panel, GameState state) {
+        // 1. Draw Backgrounds (uses pre-calculated fields)
         g.drawImage(assetManager.getBackgroundImage(), 0, 0, boardWidth, totalH, null);
+        drawBarBackgrounds(g);
 
-        // Bars background (outside the map)
-        Graphics2D g2 = (Graphics2D) g.create();
-        g2.setColor(new Color(0, 0, 0, 200));
-        g2.fillRect(0, 0, boardWidth, topBarH);                                  // top bar
-        g2.fillRect(0, topBarH + boardHeight, boardWidth, bottomBarH);           // bottom bar
-        g2.dispose();
-
-        // Draw map + entities shifted down by topBarH
-        Graphics2D gm = (Graphics2D) ((Graphics2D) g).create();
-        gm.translate(0, topBarH);
-
-        for (Entity wall : state.walls) {
-            gm.drawImage(wall.image, wall.x, wall.y, wall.width, wall.height, null);
-        }
-        for (Entity food : state.foods) {
-            gm.drawImage(food.image, food.x, food.y, food.width, food.height, null);
-        }
-        for (Entity knife : state.knives) {
-            gm.drawImage(knife.image, knife.x, knife.y, knife.width, knife.height, null);
-        }
-        for (Actor ghost : state.ghosts) {
-            gm.drawImage(ghost.image, ghost.x, ghost.y, ghost.width, ghost.height, null);
-        }
-        if (state.pacman != null) {
-            gm.drawImage(state.pacman.image, state.pacman.x, state.pacman.y, state.pacman.width, state.pacman.height, null);
-        }
+        // 2. Draw Game Entities
+        Graphics2D gm = (Graphics2D) g.create();
+        gm.translate(0, topBarH); // Use the field
+        drawEntities(gm, state);
         gm.dispose();
 
-        // --- Insert animation : draw procedural death animations on top ---
+        // 3. Draw Animations
         if (state.animations != null && !state.animations.isEmpty()) {
             Graphics2D gAnim = (Graphics2D) g.create();
             gAnim.translate(0, topBarH);
@@ -73,32 +53,107 @@ public class Renderer {
             gAnim.dispose();
         }
 
-        // HUD on the bars (score/level/lives/knives + overlays)
+        // 4. Draw HUD
         drawHUD(g, state);
+
+        // ----------------------------
+        // Pause snapshot capture + overlay
+        // Inserted here so it's executed after the normal frame has been drawn,
+        // but before the buffer is shown. Uses the existing draw routines to
+        // produce a snapshot that matches the on-screen content.
+        // ----------------------------
+        {
+            Graphics2D g2 = (g instanceof Graphics2D) ? (Graphics2D) g : (Graphics2D) g.create();
+
+            // Capture snapshot once when entering pause
+            if (pauseManager.isPaused() && pauseManager.getPauseSnapshot() == null) {
+                BufferedImage snap = new BufferedImage(boardWidth, totalH, BufferedImage.TYPE_INT_ARGB);
+                Graphics2D gs = snap.createGraphics();
+
+                // Replicate the same drawing steps into the snapshot so it matches on-screen.
+                gs.drawImage(assetManager.getBackgroundImage(), 0, 0, boardWidth, totalH, null);
+                drawBarBackgrounds(gs);
+
+                Graphics2D gmSnap = (Graphics2D) gs.create();
+                gmSnap.translate(0, topBarH);
+                drawEntities(gmSnap, state);
+                gmSnap.dispose();
+
+                if (state.animations != null && !state.animations.isEmpty()) {
+                    Graphics2D gAnimSnap = (Graphics2D) gs.create();
+                    gAnimSnap.translate(0, topBarH);
+                    for (DeathAnimation da : state.animations) {
+                        da.render(gAnimSnap);
+                    }
+                    gAnimSnap.dispose();
+                }
+
+                // Draw HUD into snapshot as well (omit if you want HUD sharp)
+                drawHUD(gs, state);
+
+                gs.dispose();
+                pauseManager.setPauseSnapshot(snap);
+            }
+
+            // If paused, draw overlay on top of current frame
+            if (pauseManager.isPaused()) {
+                BufferedImage snap = pauseManager.getPauseSnapshot();
+                if (snap != null) {
+                    pauseOverlay.renderPaused(g2, snap, boardWidth, totalH);
+                } else {
+                    Composite old = g2.getComposite();
+                    g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.6f));
+                    g2.setColor(Color.BLACK);
+                    g2.fillRect(0, 0, boardWidth, totalH);
+                    g2.setComposite(old);
+                    g2.setColor(Color.WHITE);
+                    g2.setFont(new Font("SansSerif", Font.BOLD, 48));
+                    FontMetrics fm = g2.getFontMetrics();
+                    String paused = "PAUSED";
+                    int px = (boardWidth - fm.stringWidth(paused)) / 2;
+                    int py = topBarH + boardHeight / 2;
+                    g2.drawString(paused, px, py);
+                }
+            }
+        }
     }
 
+    private void drawBarBackgrounds(Graphics g) {
+        Graphics2D g2 = (Graphics2D) g.create();
+        g2.setColor(new Color(0, 0, 0, 200));
+        g2.fillRect(0, 0, boardWidth, topBarH);
+        g2.fillRect(0, topBarH + boardHeight, boardWidth, bottomBarH);
+        g2.dispose();
+    }
 
-    /**
-     * Draws the heads-up display (score, lives, etc.).
-     * Draws Game Over, Game Win and inter-level banner
-     */
+    private void drawEntities(Graphics2D g2d, GameState state) {
+        for (Entity wall : state.walls)       drawEntity(g2d, wall);
+        for (Entity food : state.foods)       drawEntity(g2d, food);
+        for (Entity knife : state.knives)     drawEntity(g2d, knife);
+        for (Actor ghost : state.ghosts)      drawActor(g2d, ghost);
+        if (state.boss != null)               drawActor(g2d, state.boss);
+        for (Actor proj : state.projectiles)  drawActor(g2d, proj);
+        if (state.pacman != null)             drawActor(g2d, state.pacman);
+    }
 
-    private void drawHUD(Graphics g, PacMan.GameState state) {
-        final int boardWidth  = tileSize * gameMap.getColumnCount();
-        final int boardHeight = tileSize * gameMap.getRowCount();
-        final int topBarH     = Math.max(32, tileSize);
-        final int bottomBarH  = Math.max(40, (int)(tileSize * 1.2));
-        final int totalH      = topBarH + boardHeight + bottomBarH;
-        final int pad         = Math.max(8, tileSize / 6);
+    private void drawEntity(Graphics2D g, Entity e) {
+        if (e.image != null) g.drawImage(e.image, e.x, e.y, e.width, e.height, null);
+    }
+    private void drawActor(Graphics2D g, Actor a) {
+        if (a.image != null) g.drawImage(a.image, a.x, a.y, a.width, a.height, null);
+    }
 
-        // ===== Overlays (dim full screen) =====
+    private void drawHUD(Graphics g, GameState state) {
+        int pad = Math.max(8, tileSize / 6);
+
+        // Overlays (Game Over / Level Up)
         if (state.gameOver || state.gameWon || state.interLevel) {
             Graphics2D g2 = (Graphics2D) g.create();
             g2.setColor(new Color(0, 0, 0, 140));
             g2.fillRect(0, 0, boardWidth, totalH);
 
             String title = state.gameOver ? "GAME OVER" : (state.gameWon ? "YOU WIN!" : ("Level " + (state.nextLevelToStart > 0 ? state.nextLevelToStart : state.currentLevel + 1)));
-            float titleSize = state.interLevel ? 56f : 56f;
+            float titleSize = 56f;
 
             g2.setFont(g2.getFont().deriveFont(Font.BOLD, titleSize));
             FontMetrics fm = g2.getFontMetrics();
@@ -115,261 +170,185 @@ public class Renderer {
                 int sy = ty + fm.getHeight() + 40;
                 g2.drawString(sub, sx, sy);
             }
-
             g2.dispose();
-            if (!state.interLevel) return; // keep banner visible; skip bars text
-            // if interLevel, still draw top/bottom bar content below
+            if (!state.interLevel) return;
         }
 
         Graphics2D g2 = (Graphics2D) g.create();
 
-        // ===== TOP BAR =====
-        // Score (top-left) – number only
-        {
-            g2.setFont(new Font("Arial", Font.BOLD, Math.max(18, tileSize / 2)));
-            String scoreText = String.valueOf(state.score);
-            FontMetrics fm = g2.getFontMetrics();
-            int tx = pad;
-            int ty = (topBarH - fm.getHeight()) / 2 + fm.getAscent();
-            g2.setColor(Color.WHITE);
-            g2.drawString(scoreText, tx, ty);
+        // Score
+        g2.setFont(new Font("Arial", Font.BOLD, Math.max(18, tileSize / 2)));
+        String scoreText = String.valueOf(state.score);
+        FontMetrics fm = g2.getFontMetrics();
+        int ty = (topBarH - fm.getHeight()) / 2 + fm.getAscent();
+        g2.setColor(Color.WHITE);
+        g2.drawString(scoreText, pad, ty);
+
+        // Level
+        String levelText = "Level " + state.currentLevel;
+        int tx = boardWidth - pad - fm.stringWidth(levelText);
+        g2.drawString(levelText, tx, ty);
+
+        // Boss HUD in top bar
+        if (state.boss != null) {
+            drawBossHud(g2, state, pad);
         }
 
-        // Level (top-right) – "Level N"
-        {
-            g2.setFont(new Font("Arial", Font.BOLD, Math.max(18, tileSize / 2)));
-            String levelText = "Level " + state.currentLevel;
-            FontMetrics fm = g2.getFontMetrics();
-            int tx = boardWidth - pad - fm.stringWidth(levelText);
-            int ty = (topBarH - fm.getHeight()) / 2 + fm.getAscent();
-            g2.setColor(Color.WHITE);
-            g2.drawString(levelText, tx, ty);
-        }
-
-        // ===== BOTTOM BAR =====
-        int iconH = (int) (bottomBarH * 0.8);   // BIGGER icons
-        int iconW = iconH;
+        // Bottom Bar Icons
+        int iconH = (int) (bottomBarH * 0.8);
         int gap   = Math.max(6, tileSize / 6);
         int baseY = topBarH + boardHeight + (bottomBarH - iconH) / 2;
 
-        // Lives (bottom-left) – icons only
-        {
-            Image lifeIcon = assetManager.getPacmanRightImage();
-            int count = Math.max(0, state.lives);
-            int x = pad;
-            for (int i = 0; i < count; i++) {
-                if (lifeIcon != null) g2.drawImage(lifeIcon, x, baseY, iconW, iconH, null);
-                else { g2.setColor(Color.WHITE); g2.fillOval(x, baseY, iconW, iconH); }
-                x += iconW + gap;
-            }
+        // Lives
+        Image lifeIcon = assetManager.getPacmanRightImage();
+        int count = Math.max(0, state.lives);
+        int x = pad;
+        for (int i = 0; i < count; i++) {
+            if (lifeIcon != null) g2.drawImage(lifeIcon, x, baseY, iconH, iconH, null);
+            x += iconH + gap;
         }
 
-        // Knives (bottom-right) – icons only
-        {
-            Image knifeIcon = assetManager.getKnifeImage();
-            int count = Math.max(0, state.knifeCount);
-            int x = boardWidth - pad - iconW;
-            for (int i = 0; i < count; i++) {
-                if (knifeIcon != null) g2.drawImage(knifeIcon, x, baseY, iconW, iconH, null);
-                else { g2.setColor(Color.WHITE); g2.fillRect(x, baseY, iconW, iconH); }
-                x -= iconW + gap;
-            }
+        // Knives
+        Image knifeIcon = assetManager.getKnifeImage();
+        int kCount = Math.max(0, state.knifeCount);
+        int kx = boardWidth - pad - iconH;
+        for (int i = 0; i < kCount; i++) {
+            if (knifeIcon != null) g2.drawImage(knifeIcon, kx, baseY, iconH, iconH, null);
+            kx -= iconH + gap;
         }
+
+        // Sprint Meter
+        drawSprintMeter(g2, state, baseY, iconH, gap);
 
         g2.dispose();
     }
 
+    private void drawSprintMeter(Graphics2D g2, GameState state, int baseY, int iconH, int gap) {
+        int meterHeight = Math.max(iconH / 2, (int) (iconH * 0.6));
+        int meterWidth = Math.max(tileSize * 6, boardWidth / 2);
+        int mx = (boardWidth - meterWidth) / 2;
+        int my = baseY + (iconH - meterHeight) / 2;
+
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+        // Background and border
+        g2.setColor(new Color(255, 255, 255, 50));
+        g2.fillRoundRect(mx, my, meterWidth, meterHeight, 12, 12);
+        g2.setColor(new Color(255, 255, 255, 140));
+        g2.drawRoundRect(mx, my, meterWidth, meterHeight, 12, 12);
+
+        // Determine status
+        boolean onCooldown = state.sprintCooldownTicks > 0;
+        boolean active = state.sprintActive;
+        float fillRatio;
+        Color fillColor;
+        String label;
+
+        if (active) {
+            fillRatio = Math.max(0f, Math.min(1f, (float) state.sprintTicksRemaining / GameConstants.TIMER_SPRINT_DURATION));
+            fillColor = new Color(255, 200, 0);
+            label = "Sprinting";
+        } else if (onCooldown) {
+            float cooldownRatio = 1f - (float) state.sprintCooldownTicks / GameConstants.TIMER_SPRINT_COOLDOWN;
+            fillRatio = Math.max(0f, Math.min(1f, cooldownRatio));
+            fillColor = new Color(180, 60, 60);
+            label = "Cooldown";
+        } else {
+            fillRatio = 1f;
+            fillColor = new Color(60, 180, 90);
+            label = "Sprint";
+        }
+
+        int fillWidth = (int) (fillRatio * (meterWidth - 4));
+        g2.setColor(fillColor);
+        g2.fillRoundRect(mx + 2, my + 2, fillWidth, meterHeight - 4, 10, 10);
+
+        // Label
+        g2.setFont(new Font("Arial", Font.BOLD, Math.max(12, tileSize / 3)));
+        FontMetrics fm = g2.getFontMetrics();
+        int textX = mx + (meterWidth - fm.stringWidth(label)) / 2;
+        int textY = my + (meterHeight - fm.getHeight()) / 2 + fm.getAscent();
+        g2.setColor(Color.BLACK);
+        g2.drawString(label, textX + 1, textY + 1);
+        g2.setColor(Color.WHITE);
+        g2.drawString(label, textX, textY);
+    }
+
+    private void drawBossHud(Graphics2D g2, GameState state, int pad) {
+        Image bossImg = assetManager.getBossImage();
+        int centerX = boardWidth / 2;
+        int gap = Math.max(6, pad / 2);
+
+        int barWidth = Math.max(tileSize * 8, boardWidth / 3);
+        int barHeight = Math.max(topBarH / 2, tileSize / 2);
+        int iconW = 0;
+        int iconH = 0;
+
+        if (bossImg != null) {
+            iconH = Math.max(topBarH - pad * 2, tileSize);
+            iconW = iconH * bossImg.getWidth(null) / bossImg.getHeight(null);
+        }
+
+        int totalWidth = barWidth + (iconW > 0 ? iconW + gap : 0);
+        int startX = centerX - totalWidth / 2;
+        int barX = iconW > 0 ? startX + iconW + gap : startX;
+        int barY = (topBarH - barHeight) / 2;
+
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+        if (bossImg != null) {
+            g2.drawImage(bossImg, startX, (topBarH - iconH) / 2, iconW, iconH, null);
+        }
+
+        g2.setColor(new Color(80, 0, 0, 180));
+        g2.fillRoundRect(barX, barY, barWidth, barHeight, 12, 12);
+        g2.setColor(new Color(200, 80, 80, 220));
+        g2.drawRoundRect(barX, barY, barWidth, barHeight, 12, 12);
+
+        float livesRatio = Math.max(0f, Math.min(1f, (float) state.boss.getLives() / GameConstants.BOSS_LIVES));
+        int innerWidth = Math.max(0, (int) ((barWidth - 6) * livesRatio));
+        int innerHeight = barHeight - 6;
+        int innerX = barX + 3;
+        int innerY = barY + 3;
+
+        g2.setPaint(new GradientPaint(innerX, innerY, new Color(255, 120, 120), innerX, innerY + innerHeight, new Color(200, 20, 20)));
+        g2.fillRoundRect(innerX, innerY, innerWidth, innerHeight, 10, 10);
+
+        String label = "BOSS " + state.boss.getLives() + "/" + GameConstants.BOSS_LIVES;
+        g2.setFont(new Font("Arial", Font.BOLD, Math.max(14, tileSize / 2)));
+        FontMetrics fm = g2.getFontMetrics();
+        int textX = barX + (barWidth - fm.stringWidth(label)) / 2;
+        int textY = barY + (barHeight - fm.getHeight()) / 2 + fm.getAscent();
+
+        g2.setColor(Color.BLACK);
+        g2.drawString(label, textX + 1, textY + 1);
+        g2.setColor(Color.WHITE);
+        g2.drawString(label, textX, textY);
+    }
     // -----------------------------------------------------------------
-    //  WALL TEXTURE REFACTOR
+    //  WALL TEXTURE LOGIC
     // -----------------------------------------------------------------
 
-    /**
-     * Dynamically creates a wall texture based on adjacent walls.
-     * This is the "facade" method that coordinates the drawing.
-     * Its complexity is now very low.
-     */
     public Image createWallTexture(boolean[][] wallMatrix, int row, int column) {
+        Image wallImage = assetManager.getWallImage();
+
+        if (wallImage == null) {
+            BufferedImage fallback = new BufferedImage(tileSize, tileSize, BufferedImage.TYPE_INT_ARGB);
+            Graphics2D fallbackG = fallback.createGraphics();
+            fallbackG.setColor(new Color(30, 30, 30));
+            fallbackG.fillRect(0, 0, tileSize, tileSize);
+            fallbackG.setColor(new Color(80, 80, 80));
+            fallbackG.drawRect(0, 0, tileSize - 1, tileSize - 1);
+            fallbackG.dispose();
+            return fallback;
+        }
+
         BufferedImage texture = new BufferedImage(tileSize, tileSize, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g2d = texture.createGraphics();
-        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
-        // Determine neighbors
-        boolean hasTop = row > 0 && wallMatrix[row - 1][column];
-        boolean hasBottom = row < gameMap.getRowCount() - 1 && wallMatrix[row + 1][column];
-        boolean hasLeft = column > 0 && wallMatrix[row][column - 1];
-        boolean hasRight = column < gameMap.getColumnCount() - 1 && wallMatrix[row][column + 1];
-
-        // --- Delegate drawing to private helper methods ---
-        drawBase(g2d);
-        drawInner(g2d, hasTop, hasBottom, hasLeft, hasRight);
-
-        // Save original stroke
-        Stroke originalStroke = g2d.getStroke();
-        g2d.setStroke(new BasicStroke(Math.max(1f, (tileSize / 8) / 3f))); // accentThickness / 3
-
-        if (!hasTop)    drawTopBorder(g2d);
-        else            drawGenericBorder(g2d, "TOP");
-
-        if (!hasBottom) drawBottomBorder(g2d);
-        else            drawGenericBorder(g2d, "BOTTOM");
-
-        if (!hasLeft)   drawLeftBorder(g2d);
-        else            drawGenericBorder(g2d, "LEFT");
-
-        if (!hasRight)  drawRightBorder(g2d);
-        else            drawGenericBorder(g2d, "RIGHT");
-
-        g2d.setStroke(originalStroke);
+        g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+        g2d.drawImage(wallImage, 0, 0, tileSize, tileSize, null);
         g2d.dispose();
         return texture;
-    }
-
-    // --- Private Helper Methods for Wall Texture ---
-    // (Each of these has a *much* lower complexity score)
-
-    private void drawBase(Graphics2D g2d) {
-        Color baseShadow = new Color(70, 50, 20);
-        Color baseLight = new Color(235, 190, 90);
-
-        if (assetManager.getWallImage() != null) {
-            g2d.drawImage(assetManager.getWallImage(), 0, 0, tileSize, tileSize, null);
-        }
-        GradientPaint basePaint = new GradientPaint(0, 0, baseShadow, tileSize, tileSize, baseLight);
-        g2d.setPaint(basePaint);
-        g2d.fillRect(0, 0, tileSize, tileSize);
-    }
-
-    private void drawInner(Graphics2D g2d, boolean hasTop, boolean hasBottom, boolean hasLeft, boolean hasRight) {
-        int borderThickness = Math.max(3, tileSize / 9);
-        int accentThickness = Math.max(3, tileSize / 8);
-        int cornerDiameter = borderThickness * 2;
-
-        int innerWidth = Math.max(0, tileSize - borderThickness * 2);
-        int innerHeight = Math.max(0, tileSize - borderThickness * 2);
-
-        if (innerWidth <= 0 || innerHeight <= 0) return; // Nothing to draw
-
-        Color innerHighlight = new Color(255, 220, 130);
-        Color innerShadow = new Color(120, 90, 40);
-        Color accentBright = new Color(255, 210, 100);
-
-        // Main inner panel
-        GradientPaint innerPaint = new GradientPaint(0, borderThickness, innerShadow, 0, tileSize - borderThickness, innerHighlight);
-        g2d.setPaint(innerPaint);
-        g2d.fillRoundRect(borderThickness, borderThickness, innerWidth, innerHeight, cornerDiameter, cornerDiameter);
-
-        // Overlay
-        g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.35f));
-        g2d.setPaint(new GradientPaint(0, tileSize / 4f, accentBright, 0, tileSize * 3 / 4f, innerShadow));
-        g2d.fillRoundRect(borderThickness, borderThickness, innerWidth, innerHeight, cornerDiameter, cornerDiameter);
-        g2d.setComposite(AlphaComposite.SrcOver);
-
-        // Highlight stroke
-        g2d.setColor(new Color(255, 217, 89));
-        g2d.setStroke(new BasicStroke(Math.max(1, tileSize / 32f)));
-        g2d.drawRoundRect(borderThickness, borderThickness, innerWidth, innerHeight, cornerDiameter, cornerDiameter);
-
-        // Vertical lines
-        int accentLineWidth = Math.max(1, tileSize / 18);
-        g2d.setColor(new Color(1, 8, 1));
-        g2d.fillRect(tileSize / 3 - accentLineWidth / 2, borderThickness + accentThickness, accentLineWidth, innerHeight - accentThickness * 2);
-        g2d.fillRect(tileSize * 2 / 3 - accentLineWidth / 2, borderThickness + accentThickness, accentLineWidth, innerHeight - accentThickness * 2);
-    }
-
-    private void drawGenericBorder(Graphics2D g2d, String side) {
-        int accentThickness = Math.max(3, tileSize / 8);
-        int thickness = Math.max(2, accentThickness / 3);
-        g2d.setColor(new Color(44, 16, 94));
-
-        switch(side) {
-            case "TOP":    g2d.fillRect(0, 0, tileSize, thickness); break;
-            case "BOTTOM": g2d.fillRect(0, tileSize - thickness, tileSize, thickness); break;
-            case "LEFT":   g2d.fillRect(0, 0, thickness, tileSize); break;
-            case "RIGHT":  g2d.fillRect(tileSize - thickness, 0, thickness, tileSize); break;
-        }
-    }
-
-    private void drawTopBorder(Graphics2D g2d) {
-        int accentThickness = Math.max(3, tileSize / 8);
-        Color accentBright = new Color(255, 210, 100);
-        Color accentDark = new Color(180, 130, 50);
-        Color accentHighlight = new Color(255, 235, 180);
-
-        g2d.setPaint(new GradientPaint(0, 0, accentBright, 0, accentThickness, accentDark));
-        g2d.fillRect(0, 0, tileSize, accentThickness);
-
-        int segmentWidth = Math.max(3, tileSize / 6);
-        int gap = Math.max(2, segmentWidth / 2);
-        int yOffset = Math.max(1, accentThickness / 3);
-        for (int x = 0; x < tileSize; x += segmentWidth + gap) {
-            int width = Math.min(segmentWidth, tileSize - x);
-            g2d.setColor(accentHighlight);
-            g2d.fillRect(x, yOffset, width, Math.max(1, accentThickness / 3));
-            g2d.setColor(accentDark);
-            g2d.drawLine(x, accentThickness - 1, x + width, accentThickness - 1);
-        }
-    }
-
-    private void drawBottomBorder(Graphics2D g2d) {
-        int accentThickness = Math.max(3, tileSize / 8);
-        Color accentBright = new Color(255, 210, 100);
-        Color accentDark = new Color(180, 130, 50);
-        Color accentHighlight = new Color(255, 235, 180);
-
-        g2d.setPaint(new GradientPaint(0, tileSize - accentThickness, accentDark, 0, tileSize, accentBright));
-        g2d.fillRect(0, tileSize - accentThickness, tileSize, accentThickness);
-
-        int segmentWidth = Math.max(3, tileSize / 6);
-        int gap = Math.max(2, segmentWidth / 2);
-        int yOffset = tileSize - accentThickness + Math.max(1, accentThickness / 4);
-        for (int x = 0; x < tileSize; x += segmentWidth + gap) {
-            int width = Math.min(segmentWidth, tileSize - x);
-            g2d.setColor(accentHighlight);
-            g2d.fillRect(x, yOffset, width, Math.max(1, accentThickness / 3));
-            g2d.setColor(accentDark.darker());
-            g2d.drawLine(x, tileSize - 1, x + width, tileSize - 1);
-        }
-    }
-
-    private void drawLeftBorder(Graphics2D g2d) {
-        int accentThickness = Math.max(3, tileSize / 8);
-        Color accentBright = new Color(255, 210, 100);
-        Color accentDark = new Color(180, 130, 50);
-        Color accentHighlight = new Color(255, 235, 180);
-
-        g2d.setPaint(new GradientPaint(0, 0, accentBright, accentThickness, 0, accentDark));
-        g2d.fillRect(0, 0, accentThickness, tileSize);
-
-        int segmentHeight = Math.max(3, tileSize / 6);
-        int gap = Math.max(2, segmentHeight / 2);
-        int xOffset = Math.max(1, accentThickness / 3);
-        for (int y = 0; y < tileSize; y += segmentHeight + gap) {
-            int height = Math.min(segmentHeight, tileSize - y);
-            g2d.setColor(accentHighlight);
-            g2d.fillRect(xOffset, y, Math.max(1, accentThickness / 3), height);
-            g2d.setColor(accentDark);
-            g2d.drawLine(accentThickness - 1, y, accentThickness - 1, y + height);
-        }
-    }
-
-    private void drawRightBorder(Graphics2D g2d) {
-        int accentThickness = Math.max(3, tileSize / 8);
-        Color accentBright = new Color(255, 210, 100);
-        Color accentDark = new Color(180, 130, 50);
-        Color accentHighlight = new Color(255, 235, 180);
-
-        g2d.setPaint(new GradientPaint(tileSize - accentThickness, 0, accentDark, tileSize, 0, accentBright));
-        g2d.fillRect(tileSize - accentThickness, 0, accentThickness, tileSize);
-
-        int segmentHeight = Math.max(3, tileSize / 6);
-        int gap = Math.max(2, segmentHeight / 2);
-        int xOffset = tileSize - accentThickness + Math.max(1, accentThickness / 4);
-        for (int y = 0; y < tileSize; y += segmentHeight + gap) {
-            int height = Math.min(segmentHeight, tileSize - y);
-            g2d.setColor(accentHighlight);
-            g2d.fillRect(xOffset, y, Math.max(1, accentThickness / 3), height);
-            g2d.setColor(accentDark.darker());
-            g2d.drawLine(tileSize - 1, y, tileSize - 1, y + height);
-        }
     }
 }

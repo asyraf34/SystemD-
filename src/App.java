@@ -1,7 +1,10 @@
 import javax.swing.*;
 import java.awt.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class App {
+    private static final Logger LOGGER = Logger.getLogger(App.class.getName());
     public static void main(String[] args) {
         int rowCount = 21;
         int columnCount = 19;
@@ -9,15 +12,17 @@ public class App {
         int boardWidth = columnCount * tileSize;
         int scoreboardHeight = tileSize * 2;
         int boardHeight = rowCount * tileSize + scoreboardHeight;
+        try {
+            LOGGER.info("Loading assets and initializing game components.");
 
-        JFrame frame = new JFrame("Pac Man");
-        frame.setSize(boardWidth, boardHeight);
-        frame.setLocationRelativeTo(null);
-        frame.setResizable(false);
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+            JFrame frame = new JFrame("Pac Man");
+            frame.setSize(boardWidth, boardHeight);
+            frame.setLocationRelativeTo(null);
+            frame.setResizable(true);
+            frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
         CardLayout cardLayout = new CardLayout();
-        JPanel menuPanel = new JPanel(cardLayout);
+            JPanel menuPanel = new JPanel(cardLayout);
 
         String[][] story = ReadStoryFile.getStorySets();
         PacMan pacmanGame = new PacMan();  // Create upfront
@@ -42,6 +47,11 @@ public class App {
         frame.pack();
         frame.setVisible(true);
 
-        cardLayout.show(menuPanel, "MENU");
+            LOGGER.info("Starting game loop.");
+            cardLayout.show(menuPanel, "MENU");
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Uncaught exception during application startup.", e);
+            System.exit(1);
+        }
     }
 }
