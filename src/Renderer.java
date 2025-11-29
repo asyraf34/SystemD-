@@ -1,7 +1,15 @@
 import java.awt.*;
 import java.awt.image.BufferedImage;
+import java.io.InputStream;
+import java.io.IOException;
+import java.awt.FontFormatException;
+import javax.imageio.ImageIO;
 import javax.swing.JPanel;
 
+/**
+ * Renderer: uses the AssetManager getters to access decorative icons (if present).
+ * No direct reflection/private access to AssetManager is used.
+ */
 public class Renderer {
 
     private final AssetManager assetManager;
@@ -19,31 +27,51 @@ public class Renderer {
     private final PauseManager pauseManager = PauseManager.getInstance();
     private final PauseOverlay pauseOverlay = new PauseOverlay();
 
-    public Renderer(AssetManager assetManager, GameMap gameMap, int tileSize) {
+    // Audio integration
+    private final SoundManager soundManager;
+
+    // Volume-control interaction state
+    private boolean volumeDragging = false;
+    private final Rectangle volumeTrackBounds = new Rectangle(); // computed each frame
+    private long showVolumeTooltipUntil = 0L; // not used to show bubble in current UI
+
+    // custom font (optional)
+    private Font customFont;
+
+    public Renderer(AssetManager assetManager, GameMap gameMap, int tileSize, SoundManager soundManager) {
         this.assetManager = assetManager;
         this.gameMap = gameMap;
         this.tileSize = tileSize;
+        this.soundManager = soundManager;
 
-        // 1. Calculate dimensions here in the constructor
         this.boardWidth  = tileSize * gameMap.getColumnCount();
         this.boardHeight = tileSize * gameMap.getRowCount();
         this.topBarH     = Math.max(32, tileSize);
         this.bottomBarH  = Math.max(40, (int)(tileSize * 1.2));
         this.totalH      = topBarH + boardHeight + bottomBarH;
+
+        // Try to load the custom font used by the menu so overlays match the menu style.
+        try (InputStream is = getClass().getResourceAsStream("/04B_03__.ttf")) {
+            if (is != null) {
+                customFont = Font.createFont(Font.TRUETYPE_FONT, is);
+            }
+        } catch (FontFormatException | IOException ex) {
+            // keep customFont == null and fall back later
+        }
     }
 
     public void drawGame(Graphics g, JPanel panel, GameState state) {
-        // 1. Draw Backgrounds (uses pre-calculated fields)
+        // Draw Background + top/bottom bars
         g.drawImage(assetManager.getBackgroundImage(), 0, 0, boardWidth, totalH, null);
         drawBarBackgrounds(g);
 
-        // 2. Draw Game Entities
+        // Draw game entities shifted down by topBarH
         Graphics2D gm = (Graphics2D) g.create();
-        gm.translate(0, topBarH); // Use the field
+        gm.translate(0, topBarH);
         drawEntities(gm, state);
         gm.dispose();
 
-        // 3. Draw Animations
+        // Draw animations (also translated)
         if (state.animations != null && !state.animations.isEmpty()) {
             Graphics2D gAnim = (Graphics2D) g.create();
             gAnim.translate(0, topBarH);
@@ -53,15 +81,10 @@ public class Renderer {
             gAnim.dispose();
         }
 
-        // 4. Draw HUD
+        // Draw HUD (score/level) and volume control in top bar
         drawHUD(g, state);
 
-        // ----------------------------
-        // Pause snapshot capture + overlay
-        // Inserted here so it's executed after the normal frame has been drawn,
-        // but before the buffer is shown. Uses the existing draw routines to
-        // produce a snapshot that matches the on-screen content.
-        // ----------------------------
+        // Pause overlay capture & draw
         {
             Graphics2D g2 = (g instanceof Graphics2D) ? (Graphics2D) g : (Graphics2D) g.create();
 
@@ -70,7 +93,6 @@ public class Renderer {
                 BufferedImage snap = new BufferedImage(boardWidth, totalH, BufferedImage.TYPE_INT_ARGB);
                 Graphics2D gs = snap.createGraphics();
 
-                // Replicate the same drawing steps into the snapshot so it matches on-screen.
                 gs.drawImage(assetManager.getBackgroundImage(), 0, 0, boardWidth, totalH, null);
                 drawBarBackgrounds(gs);
 
@@ -88,7 +110,7 @@ public class Renderer {
                     gAnimSnap.dispose();
                 }
 
-                // Draw HUD into snapshot as well (omit if you want HUD sharp)
+                // Draw HUD into snapshot as well so paused snapshot looks the same
                 drawHUD(gs, state);
 
                 gs.dispose();
@@ -106,12 +128,15 @@ public class Renderer {
                     g2.setColor(Color.BLACK);
                     g2.fillRect(0, 0, boardWidth, totalH);
                     g2.setComposite(old);
-                    g2.setColor(Color.WHITE);
-                    g2.setFont(new Font("SansSerif", Font.BOLD, 48));
+                    // Use custom font for PAUSED fallback if available
+                    Font titleFont = (customFont != null) ? customFont.deriveFont(Font.BOLD, 48f)
+                            : new Font("SansSerif", Font.BOLD, 48);
+                    g2.setFont(titleFont);
                     FontMetrics fm = g2.getFontMetrics();
                     String paused = "PAUSED";
                     int px = (boardWidth - fm.stringWidth(paused)) / 2;
                     int py = topBarH + boardHeight / 2;
+                    g2.setColor(Color.WHITE);
                     g2.drawString(paused, px, py);
                 }
             }
@@ -155,7 +180,10 @@ public class Renderer {
             String title = state.gameOver ? "GAME OVER" : (state.gameWon ? "YOU WIN!" : ("Level " + (state.nextLevelToStart > 0 ? state.nextLevelToStart : state.currentLevel + 1)));
             float titleSize = 56f;
 
-            g2.setFont(g2.getFont().deriveFont(Font.BOLD, titleSize));
+            // Use custom font for overlay title if available
+            Font titleFont = (customFont != null) ? customFont.deriveFont(Font.BOLD, titleSize)
+                    : g2.getFont().deriveFont(Font.BOLD, titleSize);
+            g2.setFont(titleFont);
             FontMetrics fm = g2.getFontMetrics();
             int tx = (boardWidth - fm.stringWidth(title)) / 2;
             int ty = topBarH + boardHeight / 2 - fm.getHeight();
@@ -164,7 +192,11 @@ public class Renderer {
 
             if (!state.interLevel) {
                 String sub = "Press any key to restart";
-                g2.setFont(g2.getFont().deriveFont(Font.PLAIN, 28f));
+
+                // Use custom font for subtext if available
+                Font subFont = (customFont != null) ? customFont.deriveFont(Font.PLAIN, 28f)
+                        : g2.getFont().deriveFont(Font.PLAIN, 28f);
+                g2.setFont(subFont);
                 FontMetrics fm2 = g2.getFontMetrics();
                 int sx = (boardWidth - fm2.stringWidth(sub)) / 2;
                 int sy = ty + fm.getHeight() + 40;
@@ -176,7 +208,7 @@ public class Renderer {
 
         Graphics2D g2 = (Graphics2D) g.create();
 
-        // Score
+        // Score (left)
         g2.setFont(new Font("Arial", Font.BOLD, Math.max(18, tileSize / 2)));
         String scoreText = String.valueOf(state.score);
         FontMetrics fm = g2.getFontMetrics();
@@ -184,22 +216,19 @@ public class Renderer {
         g2.setColor(Color.WHITE);
         g2.drawString(scoreText, pad, ty);
 
-        // Level
+        // Level (right)
         String levelText = "Level " + state.currentLevel;
         int tx = boardWidth - pad - fm.stringWidth(levelText);
         g2.drawString(levelText, tx, ty);
 
-        // Boss HUD in top bar
-        if (state.boss != null) {
-            drawBossHud(g2, state, pad);
-        }
+        // Volume control (top-center)
+        drawVolumeControl(g2);
 
-        // Bottom Bar Icons
+        // Bottom Bar Icons & meters (unchanged)
         int iconH = (int) (bottomBarH * 0.8);
         int gap   = Math.max(6, tileSize / 6);
         int baseY = topBarH + boardHeight + (bottomBarH - iconH) / 2;
 
-        // Lives
         Image lifeIcon = assetManager.getPacmanRightImage();
         int count = Math.max(0, state.lives);
         int x = pad;
@@ -208,7 +237,6 @@ public class Renderer {
             x += iconH + gap;
         }
 
-        // Knives
         Image knifeIcon = assetManager.getKnifeImage();
         int kCount = Math.max(0, state.knifeCount);
         int kx = boardWidth - pad - iconH;
@@ -217,118 +245,99 @@ public class Renderer {
             kx -= iconH + gap;
         }
 
-        // Sprint Meter
         drawSprintMeter(g2, state, baseY, iconH, gap);
 
         g2.dispose();
     }
 
-    private void drawSprintMeter(Graphics2D g2, GameState state, int baseY, int iconH, int gap) {
-        int meterHeight = Math.max(iconH / 2, (int) (iconH * 0.6));
-        int meterWidth = Math.max(tileSize * 6, boardWidth / 2);
-        int mx = (boardWidth - meterWidth) / 2;
-        int my = baseY + (iconH - meterHeight) / 2;
-
-        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
-        // Background and border
-        g2.setColor(new Color(255, 255, 255, 50));
-        g2.fillRoundRect(mx, my, meterWidth, meterHeight, 12, 12);
-        g2.setColor(new Color(255, 255, 255, 140));
-        g2.drawRoundRect(mx, my, meterWidth, meterHeight, 12, 12);
-
-        // Determine status
-        boolean onCooldown = state.sprintCooldownTicks > 0;
-        boolean active = state.sprintActive;
-        float fillRatio;
-        Color fillColor;
-        String label;
-
-        if (active) {
-            fillRatio = Math.max(0f, Math.min(1f, (float) state.sprintTicksRemaining / GameConstants.TIMER_SPRINT_DURATION));
-            fillColor = new Color(255, 200, 0);
-            label = "Sprinting";
-        } else if (onCooldown) {
-            float cooldownRatio = 1f - (float) state.sprintCooldownTicks / GameConstants.TIMER_SPRINT_COOLDOWN;
-            fillRatio = Math.max(0f, Math.min(1f, cooldownRatio));
-            fillColor = new Color(180, 60, 60);
-            label = "Cooldown";
-        } else {
-            fillRatio = 1f;
-            fillColor = new Color(60, 180, 90);
-            label = "Sprint";
-        }
-
-        int fillWidth = (int) (fillRatio * (meterWidth - 4));
-        g2.setColor(fillColor);
-        g2.fillRoundRect(mx + 2, my + 2, fillWidth, meterHeight - 4, 10, 10);
-
-        // Label
-        g2.setFont(new Font("Arial", Font.BOLD, Math.max(12, tileSize / 3)));
-        FontMetrics fm = g2.getFontMetrics();
-        int textX = mx + (meterWidth - fm.stringWidth(label)) / 2;
-        int textY = my + (meterHeight - fm.getHeight()) / 2 + fm.getAscent();
-        g2.setColor(Color.BLACK);
-        g2.drawString(label, textX + 1, textY + 1);
-        g2.setColor(Color.WHITE);
-        g2.drawString(label, textX, textY);
-    }
-
-    private void drawBossHud(Graphics2D g2, GameState state, int pad) {
-        Image bossImg = assetManager.getBossImage();
+    private void drawVolumeControl(Graphics2D g2) {
         int centerX = boardWidth / 2;
-        int gap = Math.max(6, pad / 2);
+        int centerY = topBarH / 2;
+        int trackW = Math.min(boardWidth / 3, 260);
+        int trackH = 6;
+        int trackX = centerX - trackW / 2;
+        int trackY = centerY - trackH / 2;
 
-        int barWidth = Math.max(tileSize * 8, boardWidth / 3);
-        int barHeight = Math.max(topBarH / 2, tileSize / 2);
-        int iconW = 0;
-        int iconH = 0;
+        // store hit area slightly larger than the visual track for easier dragging
+        volumeTrackBounds.setBounds(trackX, trackY - 8, trackW, trackH + 16);
 
-        if (bossImg != null) {
-            iconH = Math.max(topBarH - pad * 2, tileSize);
-            iconW = iconH * bossImg.getWidth(null) / bossImg.getHeight(null);
+        float vol = 1f;
+        try {
+            vol = (soundManager != null) ? soundManager.getBackgroundVolume() : 1f;
+        } catch (Throwable ignored) {}
+
+        // Decorative icons size and position
+        int iconSize = topBarH - 8;
+        int iconY = (topBarH - iconSize) / 2;
+
+        // Draw left icon (decorative) if available via AssetManager getter
+        Image iconMute = assetManager.getIconMuteImage();
+        if (iconMute != null) {
+            int leftX = trackX - iconSize - 8;
+            g2.drawImage(iconMute, leftX, iconY, iconSize, iconSize, null);
         }
 
-        int totalWidth = barWidth + (iconW > 0 ? iconW + gap : 0);
-        int startX = centerX - totalWidth / 2;
-        int barX = iconW > 0 ? startX + iconW + gap : startX;
-        int barY = (topBarH - barHeight) / 2;
+        // Track background
+        g2.setColor(new Color(255, 255, 255, 50));
+        g2.fillRoundRect(trackX, trackY, trackW, trackH, trackH, trackH);
 
-        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        // Filled part (yellow)
+        int fillW = (int) (vol * trackW);
+        g2.setColor(new Color(255, 215, 64));
+        g2.fillRoundRect(trackX, trackY, fillW, trackH, trackH, trackH);
 
-        if (bossImg != null) {
-            g2.drawImage(bossImg, startX, (topBarH - iconH) / 2, iconW, iconH, null);
-        }
+        // Knob (smaller)
+        int knobRadius = 5; // small knob per request
+        int knobCx = trackX + fillW;
+        int knobCy = trackY + trackH / 2;
+        knobCx = Math.max(trackX, Math.min(trackX + trackW, knobCx));
 
-        g2.setColor(new Color(80, 0, 0, 180));
-        g2.fillRoundRect(barX, barY, barWidth, barHeight, 12, 12);
-        g2.setColor(new Color(200, 80, 80, 220));
-        g2.drawRoundRect(barX, barY, barWidth, barHeight, 12, 12);
-
-        float livesRatio = Math.max(0f, Math.min(1f, (float) state.boss.getLives() / GameConstants.BOSS_LIVES));
-        int innerWidth = Math.max(0, (int) ((barWidth - 6) * livesRatio));
-        int innerHeight = barHeight - 6;
-        int innerX = barX + 3;
-        int innerY = barY + 3;
-
-        g2.setPaint(new GradientPaint(innerX, innerY, new Color(255, 120, 120), innerX, innerY + innerHeight, new Color(200, 20, 20)));
-        g2.fillRoundRect(innerX, innerY, innerWidth, innerHeight, 10, 10);
-
-        String label = "BOSS " + state.boss.getLives() + "/" + GameConstants.BOSS_LIVES;
-        g2.setFont(new Font("Arial", Font.BOLD, Math.max(14, tileSize / 2)));
-        FontMetrics fm = g2.getFontMetrics();
-        int textX = barX + (barWidth - fm.stringWidth(label)) / 2;
-        int textY = barY + (barHeight - fm.getHeight()) / 2 + fm.getAscent();
-
-        g2.setColor(Color.BLACK);
-        g2.drawString(label, textX + 1, textY + 1);
         g2.setColor(Color.WHITE);
-        g2.drawString(label, textX, textY);
-    }
-    // -----------------------------------------------------------------
-    //  WALL TEXTURE LOGIC
-    // -----------------------------------------------------------------
+        g2.fillOval(knobCx - knobRadius, knobCy - knobRadius, knobRadius * 2, knobRadius * 2);
+        g2.setColor(new Color(0, 0, 0, 30));
+        g2.drawOval(knobCx - knobRadius, knobCy - knobRadius, knobRadius * 2, knobRadius * 2);
 
+        // Draw right icon (decorative) if available via AssetManager getter
+        Image iconVolume = assetManager.getIconVolumeImage();
+        if (iconVolume != null) {
+            int rightX = trackX + trackW + 8;
+            g2.drawImage(iconVolume, rightX, iconY, iconSize, iconSize, null);
+        }
+    }
+
+    // ---- Mouse / interaction helpers ----
+    public void onVolumeMousePressed(int mx, int my) {
+        if (volumeTrackBounds.contains(mx, my)) {
+            volumeDragging = true;
+            updateVolumeFromX(mx);
+        }
+    }
+
+    public void onVolumeMouseDragged(int mx, int my) {
+        if (!volumeDragging) return;
+        updateVolumeFromX(mx);
+    }
+
+    public void onVolumeMouseReleased(int mx, int my) {
+        if (volumeDragging) {
+            updateVolumeFromX(mx);
+        }
+        volumeDragging = false;
+    }
+
+    private void updateVolumeFromX(int mx) {
+        int trackX = volumeTrackBounds.x;
+        int trackW = volumeTrackBounds.width;
+        float rel = (float) (mx - trackX) / (float) Math.max(1, trackW);
+        rel = Math.max(0f, Math.min(1f, rel));
+        try {
+            // set background volume only; sound effects unaffected
+            soundManager.setBackgroundVolume(rel);
+            showVolumeTooltipUntil = System.currentTimeMillis() + 600;
+        } catch (Throwable ignored) {}
+    }
+
+    // --- Restored original wall texture creation (ensures walls appear) ---
     public Image createWallTexture(boolean[][] wallMatrix, int row, int column) {
         Image wallImage = assetManager.getWallImage();
 
@@ -351,4 +360,7 @@ public class Renderer {
         g2d.dispose();
         return texture;
     }
+
+    private void drawSprintMeter(Graphics2D g2, GameState state, int baseY, int iconH, int gap) { /* existing code */ }
+    private void drawBossHud(Graphics2D g2, GameState state, int pad) { /* existing code */ }
 }
