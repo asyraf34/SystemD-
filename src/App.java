@@ -16,36 +16,32 @@ public class App {
         frame.setResizable(false);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-        // Card container
         CardLayout cardLayout = new CardLayout();
-        JPanel cards = new JPanel(cardLayout);
+        JPanel menuPanel = new JPanel(cardLayout);
 
         String[][] story = ReadStoryFile.getStorySets();
+        PacMan pacmanGame = new PacMan();  // Create upfront
 
-        // MENU PANEL
+        // Menu -> Cutscene -> Game flow
         MenuPanel menu = new MenuPanel(() -> {
-            // When user presses ENTER on the menu, go to the cutscene
             CutscenePanel cutscene = new CutscenePanel(story, () -> {
-                // This runs when ENTER is pressed inside CutscenePanel
-                PacMan pacmanGame = new PacMan();
-                cards.add(pacmanGame, "GAME");
-                cardLayout.show(cards, "GAME");
+                cardLayout.show(menuPanel, "GAME");
                 pacmanGame.requestFocusInWindow();
             });
 
-            cards.add(cutscene, "CUTSCENE");
-            cardLayout.show(cards, "CUTSCENE");
+            menuPanel.add(cutscene, "CUTSCENE");
+            cardLayout.show(menuPanel, "CUTSCENE");
             cutscene.requestFocusInWindow();
         });
 
-        // Add menu card
-        cards.add(menu, "MENU");
+        // Add ALL panels upfront
+        menuPanel.add(menu, "MENU");
+        menuPanel.add(pacmanGame, "GAME");
 
-        frame.add(cards);
+        frame.add(menuPanel);
+        frame.pack();
         frame.setVisible(true);
 
-        // Start on the menu
-        cardLayout.show(cards, "MENU");
-        menu.requestFocusInWindow();
+        cardLayout.show(menuPanel, "MENU");
     }
 }
