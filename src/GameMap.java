@@ -96,7 +96,7 @@ public class GameMap {
     public String[] getMapData(int level) {
         if (level < 1 || level > levelMaps.size()) {
             // Handle error or return a default, e.g., level 1
-            return levelMaps.getFirst();
+            return levelMaps.get(1);
         }
         return levelMaps.get(level - 1);
     }
