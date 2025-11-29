@@ -21,9 +21,6 @@ public class App {
         JPanel cards = new JPanel(cardLayout);
 
         String[][] story = ReadStoryFile.getStorySets();
-//        String[][] story = {{"set1-1.","set1-2.","set1-3.","set1-4."},
-//        {"set2-1.","set2-2.","set2-3.","set2-4."},
-//        {"set3-1.","set3-2.","set3-3.","set3-4."},};
 
         // MENU PANEL
         MenuPanel menu = new MenuPanel(() -> {

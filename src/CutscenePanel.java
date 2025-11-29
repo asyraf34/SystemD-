@@ -84,7 +84,7 @@ public class CutscenePanel extends JPanel {
         super.paintComponent(g);
 
         g.setColor(Color.YELLOW);
-        g.setFont(new Font("Monospaced", Font.BOLD, 28));
+        g.setFont(new CustomFont(Font.TRUETYPE_FONT, 32).getCustomFont());
 
         int x = 50;
         int y = 100;
