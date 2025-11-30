@@ -40,6 +40,7 @@ public class DeathAnimation {
     private final int x, y, width, height;
     private final int totalTicks;
     private final String popupText;
+    private final Color popupColor;
 
     private int ticksRemaining;
     private int popupTicksRemaining;
@@ -84,7 +85,7 @@ public class DeathAnimation {
     // 4. CONSTRUCTOR
     // =============================================================
 
-    public DeathAnimation(Image image, int x, int y, int w, int h, int totalTicks, String scoreText) {
+    public DeathAnimation(Image image, int x, int y, int w, int h, int totalTicks, String scoreText, Color textColor) {
         this.actorImage = image;
         this.x = x;
         this.y = y;
@@ -92,6 +93,7 @@ public class DeathAnimation {
         this.height = Math.max(1, h);
         this.totalTicks = Math.max(1, totalTicks);
         this.popupText = scoreText;
+        this.popupColor = textColor;
 
         this.ticksRemaining = this.totalTicks;
         this.popupTicksRemaining = this.totalTicks;
@@ -217,7 +219,7 @@ public class DeathAnimation {
 
         g2.setColor(POPUP_COLOR_SHADOW);
         g2.drawString(popupText, tx + 1, ty + 1);
-        g2.setColor(POPUP_COLOR_MAIN);
+        g2.setColor(popupColor);
         g2.drawString(popupText, tx, ty);
     }
 }
