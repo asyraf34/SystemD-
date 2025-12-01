@@ -6,6 +6,14 @@ public class InputHandler implements KeyListener {
 
     private final HashSet<Integer> pressedKeys = new HashSet<>();
     private boolean pHeld = false;
+    private final SoundManager soundManager; // injected
+
+    // volume step for +/- keys
+    private static final float VOLUME_STEP = 0.05f;
+
+    public InputHandler(SoundManager soundManager) {
+        this.soundManager = soundManager;
+    }
 
     public Direction getDirection() {
         if (pressedKeys.contains(KeyEvent.VK_W) || pressedKeys.contains(KeyEvent.VK_UP)) return Direction.UP;
@@ -23,28 +31,47 @@ public class InputHandler implements KeyListener {
 
     @Override
     public void keyTyped(KeyEvent e) {}
-    //@Override
-    //public void keyPressed(KeyEvent e) { pressedKeys.add(e.getKeyCode()); }
-    //@Override
-    //public void keyReleased(KeyEvent e) { pressedKeys.remove(e.getKeyCode()); }
 
     @Override
     public void keyPressed(KeyEvent e) {
         int kc = e.getKeyCode();
 
-        // Handle pause toggle on 'P' (case-insensitive)
+        // Pause toggle (P)
         if (kc == KeyEvent.VK_P) {
             if (!pHeld) {
-                PauseManager.getInstance().togglePaused(); // ensure PauseManager class is present
+                PauseManager.getInstance().togglePaused();
                 pHeld = true;
             }
-            // don't add 'P' into pressedKeys (it is a control key)
-            return;
+            return; // P is a control key; don't add to pressedKeys
         }
 
-        // existing behavior for movement / sprint etc.
+        // Volume keyboard shortcuts (use injected soundManager if available)
+        if (soundManager != null) {
+            // Increase volume: + or = (shift+'=')
+            if (kc == KeyEvent.VK_EQUALS || e.getKeyChar() == '+') {
+                soundManager.changeBackgroundVolumeBy(VOLUME_STEP);
+                return;
+            }
+            // Numpad add (+)
+            if (kc == KeyEvent.VK_ADD) {
+                soundManager.changeBackgroundVolumeBy(VOLUME_STEP);
+                return;
+            }
+            // Decrease volume: -
+            if (kc == KeyEvent.VK_MINUS || e.getKeyChar() == '-') {
+                soundManager.changeBackgroundVolumeBy(-VOLUME_STEP);
+                return;
+            }
+            if (kc == KeyEvent.VK_SUBTRACT) {
+                soundManager.changeBackgroundVolumeBy(-VOLUME_STEP);
+                return;
+            }
+        }
+
+        // existing behavior: movement / sprint keys
         pressedKeys.add(kc);
     }
+
     @Override
     public void keyReleased(KeyEvent e) {
         int kc = e.getKeyCode();
