@@ -21,7 +21,8 @@ public class PacMan extends JPanel {
         state = new GameState();
         gameMap = new GameMap();
         assetManager = new AssetManager(GameConstants.TILE_SIZE);
-        SoundManager soundManager = new SoundManager();
+        // Use the singleton SoundManager so that MenuPanel and game share the same instance
+        SoundManager soundManager = SoundManager.getInstance();
         inputHandler = new InputHandler();
         renderer = new Renderer(assetManager, gameMap, GameConstants.TILE_SIZE);
 
