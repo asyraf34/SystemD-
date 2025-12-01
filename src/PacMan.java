@@ -1,6 +1,5 @@
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.*;
 import java.util.Random;
 
 public class PacMan extends JPanel {
@@ -22,15 +21,9 @@ public class PacMan extends JPanel {
         state = new GameState();
         gameMap = new GameMap();
         assetManager = new AssetManager(GameConstants.TILE_SIZE);
-
-        // Use the singleton SoundManager so UI and logic share the same audio instance
-        SoundManager soundManager = SoundManager.getInstance();
-
-        // Pass soundManager into InputHandler (constructor injection)
-        inputHandler = new InputHandler(soundManager);
-
-        // Pass soundManager into Renderer so it can draw & modify volume UI
-        renderer = new Renderer(assetManager, gameMap, GameConstants.TILE_SIZE, soundManager);
+        SoundManager soundManager = new SoundManager();
+        inputHandler = new InputHandler();
+        renderer = new Renderer(assetManager, gameMap, GameConstants.TILE_SIZE);
 
         // 2. Initialize Logic & View
         logic = new GameLogic(state, gameMap, inputHandler, soundManager, assetManager);
@@ -45,43 +38,23 @@ public class PacMan extends JPanel {
         view = new GameView(renderer, state, mapW, topBarH + mapH + bottomBarH, inputHandler);
         add(view, BorderLayout.CENTER);
 
-        // Forward mouse events from view to renderer for volume control interaction
-        view.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mousePressed(MouseEvent e) {
-                renderer.onVolumeMousePressed(e.getX(), e.getY());
-                view.repaint();
-            }
-
-            @Override
-            public void mouseReleased(MouseEvent e) {
-                renderer.onVolumeMouseReleased(e.getX(), e.getY());
-                view.repaint();
-            }
-        });
-        view.addMouseMotionListener(new MouseMotionAdapter() {
-            @Override
-            public void mouseDragged(MouseEvent e) {
-                renderer.onVolumeMouseDragged(e.getX(), e.getY());
-                view.repaint();
-            }
-        });
-
         // 3. Load Initial Level
         loadLevel();
 
         // 4. Start Loop
         soundManager.playBackgroundLoop(GameConstants.SOUND_BG);
-
+        // Check for Level Transition completion
+        // Check for Restart
         Timer gameLoop = new Timer(50, e -> {
-            // Level transition handling
+            // Check for Level Transition completion
+            // NEW: Check if flag is set and timer is finished
             if (state.interLevel && state.interLevelTicks <= 0) {
-                state.currentLevel = state.nextLevelToStart;
-                loadLevel();
-                state.interLevel = false;
+                state.currentLevel = state.nextLevelToStart; // 1. Update Level Index
+                loadLevel();                                 // 2. Load New Map & Entities
+                state.interLevel = false;                    // 3. Clear Transition Flag
             }
 
-            // Restart detection
+            // Check for Restart
             if ((state.gameOver || state.gameWon) && state.restartDebounceTicks == 0 && inputHandler.anyKeyPressed()) {
                 restartGame();
             }
