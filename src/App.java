@@ -22,9 +22,9 @@ public class App {
             frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
         CardLayout cardLayout = new CardLayout();
-            JPanel menuPanel = new JPanel(cardLayout);
-
-        String[][] story = ReadStoryFile.getStorySets();
+        JPanel menuPanel = new JPanel(cardLayout);
+        ReadStoryFile readStoryFile = ReadStoryFile.fromFile("res/storyText.txt");
+        String[][] story = readStoryFile.getStorySets();
         PacMan pacmanGame = new PacMan();  // Create upfront
 
         // Menu -> Cutscene -> Game flow

@@ -5,13 +5,14 @@ import java.util.List;
 
 public class GameState {
     public int score = 0;
-    public int lives = 3;
+    public int lives = 999;
     public boolean gameOver = false;
     public boolean gameWon = false;
-    public int currentLevel = 1;
-    public int knifeCount = 0;
+    public int currentLevel = 3;
+    public int knifeCount = 999;
     public boolean hasWeapon = false;
     public Boss boss;
+    public boolean bossState = true;
 
     // Sprint State
     public boolean sprintActive = false;
@@ -36,4 +37,11 @@ public class GameState {
     public int restartDebounceTicks = 0;
 
     public List<DeathAnimation> animations = new ArrayList<>();
+
+    //false = no kill route
+    //true = kill route
+    public boolean route = false;
+    public boolean ghostKill = false; //check ghost kill
+    public boolean gameEndProcessed = false;
+
 }

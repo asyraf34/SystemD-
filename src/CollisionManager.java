@@ -8,6 +8,7 @@ public class CollisionManager {
     public static final int GHOST_COLLISION_GHOST_KILLED = 2;
     private static final Logger LOGGER = Logger.getLogger(CollisionManager.class.getSimpleName());
 
+    public int ghostKilled = 0;
     // --- 1. Simple Collisions (Food & Knife) ---
 
     public void checkFoodCollisions(GameState state, SoundManager soundManager) {
@@ -45,7 +46,11 @@ public class CollisionManager {
                 LOGGER.info( "hasWeapon = " + state.hasWeapon + ", " + "police collides with mafia = " + state.pacman.collidesWith(ghost));
                 // CASE A: Pac-Man has weapon -> Kill Ghost
                 if (state.hasWeapon && state.knifeCount > 0) {
-                    LOGGER.info( "hasWeapon = " + state.hasWeapon + ", " + "police collides with mafia = " + state.pacman.collidesWith(ghost));
+                    ghostKilled++;
+                    LOGGER.info( "hasWeapon = " + state.hasWeapon + ", " + "police collides with mafia = "
+                            + state.pacman.collidesWith(ghost) + ", police killed = " + ghostKilled);
+                    state.ghostKill = true;
+                    System.out.println(state.ghostKill);
                     consumeWeapon(state);
                     triggerDeathAnimation(state, ghost);
                     it.remove();
@@ -85,6 +90,7 @@ public class CollisionManager {
         if (!state.boss.takeDamage()) {
             state.score += 1000;
             state.boss = null; // Boss defeated
+            state.bossState = false; // Boss dead
         }
         state.pacman.reset();
 
@@ -131,5 +137,9 @@ public class CollisionManager {
         } catch (Exception e) {
             // Ignore animation errors, game must go on
         }
+    }
+
+    public int getGhostKilled() {
+        return ghostKilled;
     }
 }
