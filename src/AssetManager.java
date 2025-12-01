@@ -1,15 +1,9 @@
 import java.awt.Image;
-import java.net.URL;
 import java.util.Objects;
 import javax.swing.ImageIcon;
 
 /**
  * Loads and provides access to all game image assets.
- *
- * Added: optional decorative icons (mute/volume).
- * - These are loaded via loadOptionalImage so missing icons won't crash the game.
- * - Put icons on the classpath at /icons/mute.png and /icons/volume.png (recommended)
- *   or package them with your resources (e.g., src/main/resources/icons/...).
  */
 public class AssetManager {
     // All images are private
@@ -19,10 +13,6 @@ public class AssetManager {
     private Image pacmanUpKnifeImage, pacmanDownKnifeImage, pacmanLeftKnifeImage, pacmanRightKnifeImage;
     private Image knifeImage, foodImage;
     private Image BossImage, BossReflectImage, ProjectileImage;
-
-    // Optional decorative icons
-    private Image iconMuteImage;
-    private Image iconVolumeImage;
 
     // Scaled food dimensions
     private int foodWidth;
@@ -36,7 +26,7 @@ public class AssetManager {
     }
 
     private void loadImages() {
-        // 1. Load standard images using the helper method (these are required)
+        // 1. Load standard images using the helper method
         backgroundImage       = loadImage("/background.png");
         wallImage             = loadImage("/wall.png");
 
@@ -66,27 +56,10 @@ public class AssetManager {
         foodImage = foodIcon.getImage();
         foodWidth = foodIcon.getIconWidth();
         foodHeight = foodIcon.getIconHeight();
-
-        // 3. Optional decorative icons -- load safely (do not throw if missing)
-        iconMuteImage   = loadOptionalImage("/mute.png");
-        iconVolumeImage = loadOptionalImage("/volume.png");
     }
 
-    // Existing helper: will throw if the required resource is missing (keeps prior behavior)
     private Image loadImage(String path) {
-        URL res = getClass().getResource(path);
-        return new ImageIcon(Objects.requireNonNull(res)).getImage();
-    }
-
-    // New helper: returns null if the resource is not available (optional icons)
-    private Image loadOptionalImage(String path) {
-        try {
-            URL res = getClass().getResource(path);
-            if (res == null) return null;
-            return new ImageIcon(res).getImage();
-        } catch (Throwable t) {
-            return null;
-        }
+        return new ImageIcon(Objects.requireNonNull(getClass().getResource(path))).getImage();
     }
 
     private void scaleFoodImage(int tileSize) {
@@ -126,10 +99,6 @@ public class AssetManager {
     public Image getBossImage() { return BossImage; }
     public Image getBossReflectImage() { return BossReflectImage; }
     public Image getProjectileImage() { return ProjectileImage; }
-
-    // Optional decorative icon getters (may return null if not provided)
-    public Image getIconMuteImage() { return iconMuteImage; }
-    public Image getIconVolumeImage() { return iconVolumeImage; }
 
     public int getFoodWidth() { return foodWidth; }
     public int getFoodHeight() { return foodHeight; }
