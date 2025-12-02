@@ -42,7 +42,10 @@ public class App {
             frame.setVisible(true);
 
             LOGGER.info("Starting game loop.");
-            SoundManager.getInstance().playBackgroundLoop(GameConstants.SOUND_MENU);
+            SoundManager.getInstance().playBackgroundLoops(
+                    GameConstants.SOUND_MENU,
+                    GameConstants.SOUND_MENU_SIREN
+            );
             cardLayout.show(menuPanel, "MENU");
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Uncaught exception during application startup.", e);

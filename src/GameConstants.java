@@ -27,7 +27,7 @@ public class GameConstants {
 
     // --- Asset Paths ---
     public static final String SOUND_MENU = "audio/menu_music.wav";
-    public static final String SOUND_MENU_siren = "audio/police_siren.wav";
+    public static final String SOUND_MENU_SIREN = "audio/police_siren.wav";
     public static final String SOUND_START = "audio/start.wav";
     public static final String SOUND_GAME = "audio/background.wav";
     public static final String SOUND_MOVE = "audio/move.wav";
