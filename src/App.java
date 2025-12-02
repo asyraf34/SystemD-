@@ -5,6 +5,7 @@ import java.util.logging.Logger;
 
 public class App {
     private static final Logger LOGGER = Logger.getLogger(App.class.getName());
+
     public static void main(String[] args) {
         int rowCount = 21;
         int columnCount = 19;
@@ -30,6 +31,7 @@ public class App {
                 cardLayout.show(menuPanel, "GAME");
                 pacmanGame.setFocusable(true);
                 pacmanGame.requestFocusInWindow();
+                pacmanGame.startGameMusic();
             });
 
             menuPanel.add(menu, "MENU");
@@ -40,6 +42,7 @@ public class App {
             frame.setVisible(true);
 
             LOGGER.info("Starting game loop.");
+            SoundManager.getInstance().playBackgroundLoop(GameConstants.SOUND_MENU);
             cardLayout.show(menuPanel, "MENU");
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Uncaught exception during application startup.", e);

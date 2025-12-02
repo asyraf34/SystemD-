@@ -156,7 +156,7 @@ public class MenuPanel extends JPanel implements ActionListener {
         // Title
         g2.setColor(Color.YELLOW);
         g2.setFont(customFont.deriveFont(Font.BOLD, 72));
-        String title = "MAN - HUNT";
+        String title = "MAN-HUNT";
         int titleWidth = g2.getFontMetrics().stringWidth(title);
         int deltaY = 30;
         g2.drawString(title, (getWidth() - titleWidth) / 2, 285 + deltaY);
@@ -180,7 +180,7 @@ public class MenuPanel extends JPanel implements ActionListener {
         // Pause hint
         g2.setFont(customFont.deriveFont(Font.PLAIN, 20));
         g2.setColor(Color.GRAY);
-        String pauseMsg = "Press 'P' to Pause";
+        String pauseMsg = "Press P to Pause";
         int pauseWidth = g2.getFontMetrics().stringWidth(pauseMsg);
         g2.drawString(pauseMsg, (getWidth() - pauseWidth) / 2, 430 + deltaY);
     }

@@ -43,7 +43,6 @@ public class PacMan extends JPanel {
         loadLevel();
 
         // 4. Start Loop
-        soundManager.playBackgroundLoop(GameConstants.SOUND_BG);
         // Check for Level Transition completion
         // Check for Restart
         Timer gameLoop = new Timer(50, e -> {
@@ -65,6 +64,10 @@ public class PacMan extends JPanel {
         });
         gameLoop.start();
     }
+    public void startGameMusic() {
+        SoundManager.getInstance().playBackgroundLoop(GameConstants.SOUND_GAME);
+    }
+
 
     // --- Setup Methods ---
 
