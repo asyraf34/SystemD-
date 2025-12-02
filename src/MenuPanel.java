@@ -137,6 +137,7 @@ public class MenuPanel extends JPanel implements ActionListener {
             @Override
             public void keyPressed(KeyEvent e) {
                 if (e.getKeyCode() == KeyEvent.VK_ENTER) {
+                    SoundManager.getInstance().playEffect(GameConstants.SOUND_START);
                     blinkTimer.stop();
                     startGameCallback.run();
                 } else if (e.getKeyCode() == KeyEvent.VK_ESCAPE) {
