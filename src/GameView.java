@@ -4,6 +4,7 @@ import java.awt.Dimension;
 import java.awt.Color;
 import java.awt.event.KeyListener;
 
+
 public class GameView extends JPanel {
     private final Renderer renderer;
     private final GameState state;

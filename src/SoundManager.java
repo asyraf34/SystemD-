@@ -2,14 +2,40 @@ import javax.sound.sampled.*;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
+import java.util.prefs.Preferences;
 
 public class SoundManager {
+    private static final String PREF_KEY = "bg_volume";
+    private static final int DEFAULT_VOLUME = 100; // 0..100
+
+    private static final SoundManager INSTANCE = new SoundManager();
+
     private Clip backgroundClip;
+    private FloatControl bgGainControl;
+    private final Preferences prefs = Preferences.userNodeForPackage(SoundManager.class);
+
+    private SoundManager() { }
+
+    public static SoundManager getInstance() {
+        return INSTANCE;
+    }
 
     public void playBackgroundLoop(String resourcePath) {
         stopBackground();
         backgroundClip = loadClip(resourcePath);
         if (backgroundClip != null) {
+            // get gain control if available and apply saved volume
+            if (backgroundClip.isControlSupported(FloatControl.Type.MASTER_GAIN)) {
+                try {
+                    bgGainControl = (FloatControl) backgroundClip.getControl(FloatControl.Type.MASTER_GAIN);
+                    // apply saved volume
+                    setBackgroundVolume(getSavedVolume());
+                } catch (IllegalArgumentException ex) {
+                    bgGainControl = null;
+                }
+            } else {
+                bgGainControl = null;
+            }
             backgroundClip.loop(Clip.LOOP_CONTINUOUSLY);
         }
     }
@@ -19,10 +45,36 @@ public class SoundManager {
             backgroundClip.stop();
             backgroundClip.close();
             backgroundClip = null;
+            bgGainControl = null;
         }
     }
 
+    /**
+     * Set background music volume (0..100). Persists the value.
+     * Does NOT change sound effects playback.
+     */
+    public void setBackgroundVolume(int percent) {
+        int clamped = Math.max(0, Math.min(100, percent));
+        prefs.putInt(PREF_KEY, clamped);
+
+        if (bgGainControl != null) {
+            float min = bgGainControl.getMinimum();
+            float max = bgGainControl.getMaximum();
+            // map linear slider [0..100] to control's [min..max]
+            float gain = min + (max - min) * (clamped / 100f);
+            bgGainControl.setValue(gain);
+        }
+    }
+
+    /**
+     * Read saved volume (0..100)
+     */
+    public int getSavedVolume() {
+        return prefs.getInt(PREF_KEY, DEFAULT_VOLUME);
+    }
+
     public void playEffect(String resourcePath) {
+        // one-shot effects are NOT affected by setBackgroundVolume
         Clip clip = loadClip(resourcePath);
         if (clip != null) {
             clip.addLineListener(event -> {

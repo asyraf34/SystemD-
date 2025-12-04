@@ -5,7 +5,6 @@ import java.util.logging.Logger;
 
 public class App {
     private static final Logger LOGGER = Logger.getLogger(App.class.getName());
-
     public static void main(String[] args) {
         int rowCount = 21;
         int columnCount = 19;
@@ -16,7 +15,7 @@ public class App {
         try {
             LOGGER.info("Loading assets and initializing game components.");
 
-            JFrame frame = new JFrame("Pac Man");
+            JFrame frame = new JFrame("Man-Hunt");
             frame.setSize(boardWidth, boardHeight);
             frame.setLocationRelativeTo(null);
             frame.setResizable(true);

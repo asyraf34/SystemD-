@@ -6,7 +6,6 @@ import javax.swing.ImageIcon;
  * Loads and provides access to all game image assets.
  */
 public class AssetManager {
-
     // All images are private
     private Image backgroundImage, wallImage;
     private Image blueGhostImage, orangeGhostImage, pinkGhostImage, redGhostImage;

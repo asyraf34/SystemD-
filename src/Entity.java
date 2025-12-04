@@ -1,5 +1,4 @@
 import java.awt.Image;
-
 /**
  * Represents a static game object with position, dimensions, and an image.
  * Used for walls, food, and knives.
