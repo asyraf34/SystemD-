@@ -10,7 +10,7 @@ public class GameMap {
     private final int rowCount;
     private final int columnCount;
 
-    private static final String[] tileMapLevel3 = {
+    private static final String[] tileMapLevel1 = {
             "XXXXXXXXXXXXXXXXXXX",
             "X        X        X",
             "X XX XXX X XXX XX X",
@@ -58,7 +58,7 @@ public class GameMap {
             "XXXXXXXXXXXXXXXXXXX"
     };
 
-    private static final String[] tileMapLevel1 = {
+    private static final String[] tileMapLevel3 = {
             "XXXXXXXXXXXXXXXXXXX",
             "X P               X",
             "X X XXXXXXXXXXX X X",
