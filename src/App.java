@@ -15,7 +15,7 @@ public class App {
         try {
             LOGGER.info("Loading assets and initializing game components.");
 
-            JFrame frame = new JFrame("Pac Man");
+            JFrame frame = new JFrame("Man-Hunt");
             frame.setSize(boardWidth, boardHeight);
             frame.setLocationRelativeTo(null);
             frame.setResizable(true);
