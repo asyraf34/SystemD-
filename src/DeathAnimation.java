@@ -211,7 +211,7 @@ public class DeathAnimation {
         int yOffset = (int)(-POPUP_FLOAT_HEIGHT * progress);
 
         g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, alpha));
-        g2.setFont(new Font("Arial", Font.BOLD, Math.max(12, height / 3)));
+        g2.setFont(new Font("Arial", Font.BOLD, Math.max(24, (int)(height*0.8))));
 
         FontMetrics fm = g2.getFontMetrics();
         int tx = x + (width - fm.stringWidth(popupText)) / 2;
