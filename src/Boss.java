@@ -83,10 +83,11 @@ public class Boss extends Actor {
         projectiles.add(spawnProjectile(target, projectileImg, 0));
         projectiles.add(spawnProjectile(target, projectileImg, Math.toRadians(-20)));
         projectiles.add(spawnProjectile(target, projectileImg, Math.toRadians(20)));
-        projectiles.add(spawnProjectile(target, projectileImg, Math.toRadians(-40)));
-        projectiles.add(spawnProjectile(target, projectileImg, Math.toRadians(40)));
-        projectiles.add(spawnProjectile(target, projectileImg, Math.toRadians(-60)));
-        projectiles.add(spawnProjectile(target, projectileImg, Math.toRadians(60)));
+        /**projectiles.add(spawnProjectile(target, projectileImg, Math.toRadians(-40)));
+         projectiles.add(spawnProjectile(target, projectileImg, Math.toRadians(40)));
+         projectiles.add(spawnProjectile(target, projectileImg, Math.toRadians(-60)));
+         projectiles.add(spawnProjectile(target, projectileImg, Math.toRadians(60)));*/
+
 
         return projectiles;
     }
