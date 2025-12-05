@@ -48,8 +48,10 @@ public class CollisionManager {
                 if (state.hasWeapon && state.knifeCount > 0) {
                     LOGGER.info( "hasWeapon = " + state.hasWeapon + ", " + "police collides with mafia = " + state.pacman.collidesWith(ghost));
                     consumeWeapon(state);
+                    LOGGER.info("Score before = " + state.score);
                     state.score += 100;
                     triggerDeathAnimation(state, ghost, "100");
+                    LOGGER.info("Mafia killed police +100 points. " + "Score after = " + state.score);
                     it.remove();
                     soundManager.playEffect("audio/kill.wav");
                     return GHOST_COLLISION_GHOST_KILLED;
@@ -87,8 +89,10 @@ public class CollisionManager {
 
         // Apply damage. takeDamage() returns true if boss is still alive, false if defeated.
         if (!state.boss.takeDamage()) {
+            LOGGER.info("Score before = " + state.score);
             state.score += 1000;
             triggerDeathAnimation(state, state.boss, "1000");
+            LOGGER.info("Mafia killed the boss +1000 points. " + "Score after = " + state.score);
             state.boss = null; // Boss defeated
         }
         state.pacman.reset();
