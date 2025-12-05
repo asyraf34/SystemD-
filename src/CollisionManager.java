@@ -48,6 +48,7 @@ public class CollisionManager {
                 if (state.hasWeapon && state.knifeCount > 0) {
                     LOGGER.info( "hasWeapon = " + state.hasWeapon + ", " + "police collides with mafia = " + state.pacman.collidesWith(ghost));
                     consumeWeapon(state);
+                    state.score += 100;
                     triggerDeathAnimation(state, ghost, "100");
                     it.remove();
                     soundManager.playEffect("audio/kill.wav");
