@@ -1,5 +1,6 @@
 import java.util.Iterator;
 import java.util.logging.Logger;
+import java.awt.Color;
 
 public class CollisionManager {
 
@@ -47,7 +48,8 @@ public class CollisionManager {
                 if (state.hasWeapon && state.knifeCount > 0) {
                     LOGGER.info( "hasWeapon = " + state.hasWeapon + ", " + "police collides with mafia = " + state.pacman.collidesWith(ghost));
                     consumeWeapon(state);
-                    triggerDeathAnimation(state, ghost);
+                    state.score += 100;
+                    triggerDeathAnimation(state, ghost, "100");
                     it.remove();
                     soundManager.playEffect("audio/kill.wav");
                     return GHOST_COLLISION_GHOST_KILLED;
@@ -81,9 +83,12 @@ public class CollisionManager {
         // 2. Boss is Vulnerable -> Boss takes damage (Knife IS consumed)
         consumeWeapon(state);
 
+        triggerBossDamageAnimation(state, state.boss);
+
         // Apply damage. takeDamage() returns true if boss is still alive, false if defeated.
         if (!state.boss.takeDamage()) {
             state.score += 1000;
+            triggerDeathAnimation(state, state.boss, "1000");
             state.boss = null; // Boss defeated
         }
         state.pacman.reset();
@@ -123,13 +128,23 @@ public class CollisionManager {
         }
     }
 
-    private void triggerDeathAnimation(GameState state, Actor ghost) {
+    private void triggerDeathAnimation(GameState state, Actor ghost, String text) {
         try {
             state.animations.add(new DeathAnimation(
-                    ghost.image, ghost.x, ghost.y, ghost.width, ghost.height, 30, "~"
+                    ghost.image, ghost.x, ghost.y, ghost.width, ghost.height, 30, text, Color.yellow
             ));
         } catch (Exception e) {
             // Ignore animation errors, game must go on
+        }
+    }
+
+    private void triggerBossDamageAnimation(GameState state, Boss boss) {
+        try {
+            state.animations.add(new DeathAnimation(
+                    boss.image, boss.x, boss.y, boss.width, boss.height, 30, "-1", Color.yellow
+            ));
+        } catch (Exception e) {
+            // Ignore animation errors
         }
     }
 }
