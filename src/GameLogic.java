@@ -135,7 +135,9 @@ public class GameLogic {
     private void endSprintWithCooldown() {
         state.sprintActive = false;
         state.sprintTicksRemaining = 0;
-        state.sprintCooldownTicks = GameConstants.TIMER_SPRINT_COOLDOWN;
+        // Use mode-aware cooldown so Demo mode gets a shorter cooldown
+        GameMode currentMode = ModeManager.getSelectedMode();
+        state.sprintCooldownTicks = GameConstants.sprintCooldown(currentMode);
         state.pacman.speed = GameConstants.SPEED_PACMAN;
     }
 
