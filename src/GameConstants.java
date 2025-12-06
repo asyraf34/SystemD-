@@ -24,7 +24,7 @@ public class GameConstants {
     public static final int TIMER_BOSS_REFLECT = 100;// 5 seconds
     public static final int TIMER_BOSS_ATTACK = 40;  // 2 seconds
     public static final int TIMER_SPRINT_DURATION = 30; // 1.5 seconds at 20 updates per second
-    public static final int TIMER_SPRINT_COOLDOWN = 100; // 5 seconds cooldown
+    public static final int TIMER_SPRINT_COOLDOWN = 100; // 5 seconds cooldown (legacy default)
 
     // --- Asset Paths ---
     public static final String SOUND_BG = "audio/background.wav";
@@ -42,5 +42,12 @@ public class GameConstants {
     public static int maxLives(GameMode mode) {
         if (mode == null) return MAX_LIVES;
         return (mode == GameMode.DEMO) ? 5 : 3;
+    }
+
+    private static final int DEMO_COOLDOWN_TICKS = 60; // shorter cooldown for demo
+
+    public static int sprintCooldown(GameMode mode) {
+        if (mode == GameMode.DEMO) return DEMO_COOLDOWN_TICKS;
+        return TIMER_SPRINT_COOLDOWN;
     }
 }
