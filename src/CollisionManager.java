@@ -84,6 +84,7 @@ public class CollisionManager {
 
         // 2. Boss is Vulnerable -> Boss takes damage (Knife IS consumed)
         consumeWeapon(state);
+        soundManager.playEffect("audio/kill.wav");
 
         triggerBossDamageAnimation(state, state.boss);
 
@@ -144,9 +145,7 @@ public class CollisionManager {
 
     private void triggerBossDamageAnimation(GameState state, Boss boss) {
         try {
-            state.animations.add(new DeathAnimation(
-                    boss.image, boss.x, boss.y, boss.width, boss.height, 30, "-1", Color.yellow
-            ));
+            state.animations.add(new DeathAnimation(boss.image, boss.x, boss.y, boss.width, boss.height, 30, "-1", Color.yellow));
         } catch (Exception e) {
             // Ignore animation errors
         }
