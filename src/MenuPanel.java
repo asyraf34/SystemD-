@@ -28,6 +28,7 @@ public class MenuPanel extends JPanel implements ActionListener {
     private static final long serialVersionUID = 1L;
     private boolean showPressStart = true;    // blinking text
     private final Timer blinkTimer = new Timer(500, this); // blink every 0.5 sec
+    private final Runnable startGameCallback;
 
     Font customFont;
 
@@ -42,6 +43,7 @@ public class MenuPanel extends JPanel implements ActionListener {
      * when Play/Demo is selected (after the selected mode has been stored into ModeManager).
      */
     public MenuPanel(Runnable startGameCallback) {
+        this.startGameCallback = startGameCallback;
         setFocusable(true);
         setBackground(Color.BLACK);
 
@@ -160,19 +162,12 @@ public class MenuPanel extends JPanel implements ActionListener {
                     );
 
                     if (res == 0) {
-                        ModeManager.setSelectedMode(GameMode.PLAY);
-                        blinkTimer.stop();
-                        if (startGameCallback != null) startGameCallback.run();
+                        startGame(GameMode.PLAY);
                     } else if (res == 1) {
-                        ModeManager.setSelectedMode(GameMode.DEMO);
-                        blinkTimer.stop();
-                        if (startGameCallback != null) startGameCallback.run();
+                        startGame(GameMode.DEMO);
                     } else {
                         // Cancel: resume blinking
                     }
-                    SoundManager.getInstance().playEffect(GameConstants.SOUND_START);
-                    blinkTimer.stop();
-                    startGameCallback.run();
                 } else if (e.getKeyCode() == KeyEvent.VK_ESCAPE) {
                     System.exit(0);
                 }
@@ -185,26 +180,25 @@ public class MenuPanel extends JPanel implements ActionListener {
 
         JButton playBtn = new JButton("Play");
         playBtn.setFont(customFont.deriveFont(Font.BOLD, 20f));
-        playBtn.addActionListener(e -> {
-            // set mode then call the original Runnable (App's callback will show game)
-            ModeManager.setSelectedMode(GameMode.PLAY);
-            blinkTimer.stop();
-            if (startGameCallback != null) startGameCallback.run();
-        });
+        playBtn.addActionListener(e -> startGame(GameMode.PLAY));
 
         JButton demoBtn = new JButton("Demo");
         demoBtn.setFont(customFont.deriveFont(Font.BOLD, 20f));
-        demoBtn.addActionListener(e -> {
-            // set mode then call the original Runnable
-            ModeManager.setSelectedMode(GameMode.DEMO);
-            blinkTimer.stop();
-            if (startGameCallback != null) startGameCallback.run();
-        });
+        demoBtn.addActionListener(e -> startGame(GameMode.DEMO));
 
         centerControls.add(playBtn);
         centerControls.add(demoBtn);
 
         add(centerControls, BorderLayout.CENTER);
+    }
+
+    private void startGame(GameMode mode) {
+        ModeManager.setSelectedMode(mode);
+        blinkTimer.stop();
+        SoundManager.getInstance().playEffect(GameConstants.SOUND_START);
+        if (startGameCallback != null) {
+            startGameCallback.run();
+        }
     }
 
     @Override
@@ -225,7 +219,7 @@ public class MenuPanel extends JPanel implements ActionListener {
         // Blinking text
         if (showPressStart) {
             g2.setColor(Color.WHITE);
-            g2.setFont(customFont.deriveFont(Font.BOLD,32));
+            g2.setFont(customFont.deriveFont(Font.BOLD, 32));
             String msg = "PRESS ENTER TO START";
             int msgWidth = g2.getFontMetrics().stringWidth(msg);
             g2.drawString(msg, (getWidth() - msgWidth) / 2, 350 + deltaY);
