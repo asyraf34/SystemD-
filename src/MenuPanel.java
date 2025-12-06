@@ -286,5 +286,5 @@ public class MenuPanel extends JPanel implements ActionListener {
         public void paintThumb(Graphics g) {
             super.paintThumb(g);
         }
-    }
+    }git 
 }
