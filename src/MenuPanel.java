@@ -106,7 +106,7 @@ public class MenuPanel extends JPanel implements ActionListener {
 
         // percentage label (0% .. 100%) shown to the right of the volume icon
         percentLabel = new JLabel(initial + "%");
-        percentLabel.setForeground(new Color(0xFF, 0xD7, 0x00)); // yellow to match track
+        percentLabel.setForeground(new Color(207, 10, 10)); // yellow to match track
         percentLabel.setFont(customFont.deriveFont(Font.BOLD, 14f));
         percentLabel.setBorder(BorderFactory.createEmptyBorder(0, 6, 0, 0));
 
@@ -197,7 +197,7 @@ public class MenuPanel extends JPanel implements ActionListener {
      * Thumb painting is delegated to the superclass.
      */
     private static class YellowTrackSliderUI extends BasicSliderUI {
-        private static final Color TRACK_COLOR = new Color(0xFF, 0xD7, 0x00); // yellow (golden)
+        private static final Color TRACK_COLOR = new Color(207, 10, 10); // yellow (golden)
         private static final Stroke TRACK_STROKE = new BasicStroke(6f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND);
 
         public YellowTrackSliderUI(JSlider b) {
