@@ -2,6 +2,8 @@ import javax.sound.sampled.*;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.prefs.Preferences;
 
 public class SoundManager {
@@ -10,8 +12,8 @@ public class SoundManager {
 
     private static final SoundManager INSTANCE = new SoundManager();
 
-    private Clip backgroundClip;
-    private FloatControl bgGainControl;
+    private final List<Clip> backgroundClips = new ArrayList<>();
+    private final List<FloatControl> bgGainControls = new ArrayList<>();
     private final Preferences prefs = Preferences.userNodeForPackage(SoundManager.class);
 
     private SoundManager() { }
@@ -21,32 +23,51 @@ public class SoundManager {
     }
 
     public void playBackgroundLoop(String resourcePath) {
+        playBackgroundLoops(resourcePath);
+    }
+
+    public void playBackgroundLoops(String... resourcePaths) {
         stopBackground();
-        backgroundClip = loadClip(resourcePath);
-        if (backgroundClip != null) {
-            // get gain control if available and apply saved volume
-            if (backgroundClip.isControlSupported(FloatControl.Type.MASTER_GAIN)) {
-                try {
-                    bgGainControl = (FloatControl) backgroundClip.getControl(FloatControl.Type.MASTER_GAIN);
-                    // apply saved volume
-                    setBackgroundVolume(getSavedVolume());
-                } catch (IllegalArgumentException ex) {
-                    bgGainControl = null;
-                }
-            } else {
-                bgGainControl = null;
-            }
-            backgroundClip.loop(Clip.LOOP_CONTINUOUSLY);
+        if (resourcePaths == null || resourcePaths.length == 0) {
+            return;
         }
+
+        int savedVolume = getSavedVolume();
+
+        for (String resourcePath : resourcePaths) {
+            Clip clip = loadClip(resourcePath);
+            if (clip == null) {
+                continue;
+            }
+
+            FloatControl gainControl = null;
+            if (clip.isControlSupported(FloatControl.Type.MASTER_GAIN)) {
+                try {
+                    gainControl = (FloatControl) clip.getControl(FloatControl.Type.MASTER_GAIN);
+                } catch (IllegalArgumentException ex) {
+                    gainControl = null;
+                }
+
+            }
+
+            backgroundClips.add(clip);
+            if (gainControl != null) {
+                bgGainControls.add(gainControl);
+            }
+
+            clip.loop(Clip.LOOP_CONTINUOUSLY);
+        }
+
+        setBackgroundVolume(savedVolume);
     }
 
     public void stopBackground() {
-        if (backgroundClip != null) {
+        for (Clip backgroundClip : backgroundClips) {
             backgroundClip.stop();
             backgroundClip.close();
-            backgroundClip = null;
-            bgGainControl = null;
         }
+        backgroundClips.clear();
+        bgGainControls.clear();
     }
 
     /**
@@ -57,12 +78,12 @@ public class SoundManager {
         int clamped = Math.max(0, Math.min(100, percent));
         prefs.putInt(PREF_KEY, clamped);
 
-        if (bgGainControl != null) {
-            float min = bgGainControl.getMinimum();
-            float max = bgGainControl.getMaximum();
+        for (FloatControl gainControl : bgGainControls) {
+            float min = gainControl.getMinimum();
+            float max = gainControl.getMaximum();
             // map linear slider [0..100] to control's [min..max]
             float gain = min + (max - min) * (clamped / 100f);
-            bgGainControl.setValue(gain);
+            gainControl.setValue(gain);
         }
     }
 
