@@ -18,6 +18,10 @@ import java.io.Serial;
  * Place /images/mute.png and /images/volume.png on the classpath.
  *
  * NOTE: This class only modifies the menu UI and does not change any in-game HUDs.
+ *
+ * IMPORTANT: This constructor keeps the original MenuPanel(Runnable) signature so App.java
+ * can remain unchanged. When the user picks Play or Demo, ModeManager is updated before
+ * the provided Runnable is executed.
  */
 public class MenuPanel extends JPanel implements ActionListener {
     @Serial
@@ -33,6 +37,10 @@ public class MenuPanel extends JPanel implements ActionListener {
     private final JLabel rightIcon;
     private final JLabel percentLabel;
 
+    /**
+     * Backwards-compatible constructor used by App.java. The provided Runnable is called
+     * when Play/Demo is selected (after the selected mode has been stored into ModeManager).
+     */
     public MenuPanel(Runnable startGameCallback) {
         setFocusable(true);
         setBackground(Color.BLACK);
@@ -137,6 +145,31 @@ public class MenuPanel extends JPanel implements ActionListener {
             @Override
             public void keyPressed(KeyEvent e) {
                 if (e.getKeyCode() == KeyEvent.VK_ENTER) {
+                    // Show a small dialog to pick Play or Demo (keyboard friendly).
+                    // Set ModeManager accordingly, then call startGameCallback.run()
+                    String[] options = {"Play", "Demo", "Cancel"};
+                    int res = JOptionPane.showOptionDialog(
+                            SwingUtilities.getWindowAncestor(MenuPanel.this),
+                            "Choose mode to start:",
+                            "Start Game",
+                            JOptionPane.DEFAULT_OPTION,
+                            JOptionPane.QUESTION_MESSAGE,
+                            null,
+                            options,
+                            options[0]
+                    );
+
+                    if (res == 0) {
+                        ModeManager.setSelectedMode(GameMode.PLAY);
+                        blinkTimer.stop();
+                        if (startGameCallback != null) startGameCallback.run();
+                    } else if (res == 1) {
+                        ModeManager.setSelectedMode(GameMode.DEMO);
+                        blinkTimer.stop();
+                        if (startGameCallback != null) startGameCallback.run();
+                    } else {
+                        // Cancel: resume blinking
+                    }
                     SoundManager.getInstance().playEffect(GameConstants.SOUND_START);
                     blinkTimer.stop();
                     startGameCallback.run();
@@ -145,6 +178,33 @@ public class MenuPanel extends JPanel implements ActionListener {
                 }
             }
         });
+
+        // Add center controls: Play / Demo buttons
+        JPanel centerControls = new JPanel(new FlowLayout(FlowLayout.CENTER, 16, 8));
+        centerControls.setOpaque(false);
+
+        JButton playBtn = new JButton("Play");
+        playBtn.setFont(customFont.deriveFont(Font.BOLD, 20f));
+        playBtn.addActionListener(e -> {
+            // set mode then call the original Runnable (App's callback will show game)
+            ModeManager.setSelectedMode(GameMode.PLAY);
+            blinkTimer.stop();
+            if (startGameCallback != null) startGameCallback.run();
+        });
+
+        JButton demoBtn = new JButton("Demo");
+        demoBtn.setFont(customFont.deriveFont(Font.BOLD, 20f));
+        demoBtn.addActionListener(e -> {
+            // set mode then call the original Runnable
+            ModeManager.setSelectedMode(GameMode.DEMO);
+            blinkTimer.stop();
+            if (startGameCallback != null) startGameCallback.run();
+        });
+
+        centerControls.add(playBtn);
+        centerControls.add(demoBtn);
+
+        add(centerControls, BorderLayout.CENTER);
     }
 
     @Override
