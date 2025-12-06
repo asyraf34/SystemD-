@@ -11,7 +11,8 @@ public class GameConstants {
     public static final int SPEED_BOSS = TILE_SIZE / 3;
     public static final int SPEED_PROJECTILE_BONUS = 2;
 
-    // --- Gameplay Settings ---
+    // --- Gameplay Settings (legacy defaults kept for compatibility) ---
+    // Legacy defaults (kept for backward compatibility). Prefer using startingKnives(mode) and maxLives(mode).
     public static final int MAX_LIVES = 3;
     public static final int BOSS_LIVES = 3;
     public static final int STARTING_KNIVES = 5;
@@ -29,4 +30,17 @@ public class GameConstants {
     public static final String SOUND_BG = "audio/background.wav";
     public static final String SOUND_MOVE = "audio/move.wav";
     public static final String SOUND_KNIFE = "audio/knife_pick.wav";
+
+    // --- Mode-aware helpers ---
+    // Play mode: 3 knives, 3 lives
+    // Demo mode: 5 knives, 5 lives
+    public static int startingKnives(GameMode mode) {
+        if (mode == null) return STARTING_KNIVES;
+        return (mode == GameMode.DEMO) ? 5 : 3;
+    }
+
+    public static int maxLives(GameMode mode) {
+        if (mode == null) return MAX_LIVES;
+        return (mode == GameMode.DEMO) ? 5 : 3;
+    }
 }
