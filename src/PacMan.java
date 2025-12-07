@@ -1,5 +1,7 @@
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.FocusAdapter;
+import java.awt.event.FocusEvent;
 import java.util.Random;
 
 public class PacMan extends JPanel {
@@ -14,14 +16,25 @@ public class PacMan extends JPanel {
     private final InputHandler inputHandler;
     private final Renderer renderer;
 
+    // Track the active mode for this game instance
+    private GameMode currentMode;
+
     public PacMan() {
+        this(GameMode.PLAY);
+    }
+
+    // Keep existing signature if any code constructs PacMan() — we keep both constructors for compatibility.
+    public PacMan(GameMode initialMode) {
+        this.currentMode = (initialMode == null) ? ModeManager.getSelectedMode() : initialMode;
+
         setLayout(new BorderLayout());
 
         // 1. Initialize Data & Tools
         state = new GameState();
         gameMap = new GameMap();
         assetManager = new AssetManager(GameConstants.TILE_SIZE);
-        SoundManager soundManager = new SoundManager();
+        // Use the singleton SoundManager so that MenuPanel and game share the same instance
+        SoundManager soundManager = SoundManager.getInstance();
         inputHandler = new InputHandler();
         renderer = new Renderer(assetManager, gameMap, GameConstants.TILE_SIZE);
 
@@ -29,6 +42,14 @@ public class PacMan extends JPanel {
         logic = new GameLogic(state, gameMap, inputHandler, soundManager, assetManager);
         addKeyListener(inputHandler);
         setFocusable(true);
+
+        // Listen for focus so we can detect start after Menu selection (App shows the game and requests focus).
+        addFocusListener(new FocusAdapter() {
+            @Override
+            public void focusGained(FocusEvent e) {
+                applySelectedModeIfNeeded();
+            }
+        });
 
         int mapW = gameMap.getColumnCount() * GameConstants.TILE_SIZE;
         int mapH = gameMap.getRowCount() * GameConstants.TILE_SIZE;
@@ -38,11 +59,13 @@ public class PacMan extends JPanel {
         view = new GameView(renderer, state, mapW, topBarH + mapH + bottomBarH, inputHandler);
         add(view, BorderLayout.CENTER);
 
+        // Set initial lives depending on the selected/current mode
+        state.lives = (currentMode == GameMode.DEMO) ? 5 : 3;
+
         // 3. Load Initial Level
         loadLevel();
 
         // 4. Start Loop
-        soundManager.playBackgroundLoop(GameConstants.SOUND_BG);
         // Check for Level Transition completion
         // Check for Restart
         Timer gameLoop = new Timer(50, e -> {
@@ -63,6 +86,25 @@ public class PacMan extends JPanel {
             view.repaint();
         });
         gameLoop.start();
+    }
+    public void startGameMusic() {
+        SoundManager.getInstance().playBackgroundLoop(GameConstants.SOUND_GAME);
+    }
+
+
+    // --- Apply mode if it's changed (called when the panel gains focus) ---
+    private void applySelectedModeIfNeeded() {
+        GameMode selected = ModeManager.getSelectedMode();
+        if (selected == null) selected = GameMode.PLAY;
+        if (selected != this.currentMode) {
+            this.currentMode = selected;
+            // Apply lives and reload the level so the mode takes effect immediately.
+            state.lives = (currentMode == GameMode.DEMO) ? 5 : 3;
+            state.hasWeapon = false;
+            state.knifeCount = 0;
+            state.currentLevel = 1; // reset to first level when switching mode
+            loadLevel();
+        }
     }
 
     // --- Setup Methods ---
@@ -123,7 +165,9 @@ public class PacMan extends JPanel {
         }
 
         spawnGhosts(currentMap);
-        spawnKnives(GameConstants.STARTING_KNIVES);
+        // Use the mode to decide how many knives to spawn per level
+        int knivesToSpawn = (currentMode == GameMode.DEMO) ? 5 : 3;
+        spawnKnives(knivesToSpawn);
     }
 
     private void spawnGhosts(String[] currentMap) {
@@ -180,7 +224,8 @@ public class PacMan extends JPanel {
     private void restartGame() {
         state.currentLevel = 1;
         state.score = 0;
-        state.lives = GameConstants.MAX_LIVES;
+        // Use mode-aware lives on restart
+        state.lives = (currentMode == GameMode.DEMO) ? 5 : 3;
         state.hasWeapon = false;
         state.knifeCount = 0;
         state.gameOver = false;

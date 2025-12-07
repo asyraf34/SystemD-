@@ -11,7 +11,8 @@ public class GameConstants {
     public static final int SPEED_BOSS = TILE_SIZE / 3;
     public static final int SPEED_PROJECTILE_BONUS = 2;
 
-    // --- Gameplay Settings ---
+    // --- Gameplay Settings (legacy defaults kept for compatibility) ---
+    // Legacy defaults (kept for backward compatibility). Prefer using startingKnives(mode) and maxLives(mode).
     public static final int MAX_LIVES = 3;
     public static final int BOSS_LIVES = 3;
     public static final int STARTING_KNIVES = 5;
@@ -23,10 +24,33 @@ public class GameConstants {
     public static final int TIMER_BOSS_REFLECT = 100;// 5 seconds
     public static final int TIMER_BOSS_ATTACK = 40;  // 2 seconds
     public static final int TIMER_SPRINT_DURATION = 30; // 1.5 seconds at 20 updates per second
-    public static final int TIMER_SPRINT_COOLDOWN = 100; // 5 seconds cooldown
+    public static final int TIMER_SPRINT_COOLDOWN = 100; // 5 seconds cooldown (legacy default)
 
     // --- Asset Paths ---
-    public static final String SOUND_BG = "audio/background.wav";
+    public static final String SOUND_MENU = "audio/menu_music.wav";
+    public static final String SOUND_MENU_SIREN = "audio/police_siren.wav";
+    public static final String SOUND_START = "audio/start.wav";
+    public static final String SOUND_GAME = "audio/background.wav";
     public static final String SOUND_MOVE = "audio/move.wav";
     public static final String SOUND_KNIFE = "audio/knife_pick.wav";
+
+    // --- Mode-aware helpers ---
+    // Play mode: 3 knives, 3 lives
+    // Demo mode: 5 knives, 5 lives
+    public static int startingKnives(GameMode mode) {
+        if (mode == null) return STARTING_KNIVES;
+        return (mode == GameMode.DEMO) ? 5 : 3;
+    }
+
+    public static int maxLives(GameMode mode) {
+        if (mode == null) return MAX_LIVES;
+        return (mode == GameMode.DEMO) ? 5 : 3;
+    }
+
+    private static final int DEMO_COOLDOWN_TICKS = 60; // shorter cooldown for demo
+
+    public static int sprintCooldown(GameMode mode) {
+        if (mode == GameMode.DEMO) return DEMO_COOLDOWN_TICKS;
+        return TIMER_SPRINT_COOLDOWN;
+    }
 }
