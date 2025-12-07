@@ -22,24 +22,32 @@ public class App {
             frame.setResizable(true);
             frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-            LOGGER.info("Creating game view and menu panels.");
-            CardLayout cardLayout = new CardLayout();
-            JPanel menuPanel  = new JPanel(cardLayout);
-            PacMan pacmanGame = new PacMan();
+        CardLayout cardLayout = new CardLayout();
+        JPanel menuPanel = new JPanel(cardLayout);
+        ReadStoryFile readStoryFile = ReadStoryFile.fromFile("res/storyText.txt");
+        String[][] story = readStoryFile.getStorySets();
+        PacMan pacmanGame = new PacMan();  // Create upfront
 
-            MenuPanel menu = new MenuPanel(() -> {
+        // Menu -> Cutscene -> Game flow
+        MenuPanel menu = new MenuPanel(() -> {
+            CutscenePanel cutscene = new CutscenePanel(story, () -> {
                 cardLayout.show(menuPanel, "GAME");
-                pacmanGame.setFocusable(true);
                 pacmanGame.requestFocusInWindow();
                 pacmanGame.startGameMusic();
             });
 
-            menuPanel.add(menu, "MENU");
-            menuPanel.add(pacmanGame, "GAME");
+            menuPanel.add(cutscene, "CUTSCENE");
+            cardLayout.show(menuPanel, "CUTSCENE");
+            cutscene.requestFocusInWindow();
+        });
 
-            frame.add(menuPanel);
-            frame.pack();
-            frame.setVisible(true);
+        // Add ALL panels upfront
+        menuPanel.add(menu, "MENU");
+        menuPanel.add(pacmanGame, "GAME");
+
+        frame.add(menuPanel);
+        frame.pack();
+        frame.setVisible(true);
 
             LOGGER.info("Starting game loop.");
             SoundManager.getInstance().playBackgroundLoops(
