@@ -5,7 +5,7 @@ public class GameConstants {
     public static final int SCREEN_HEIGHT = 21 * TILE_SIZE; // Based on map rows
 
     // --- Game Speed Balance ---
-    public static final int SPEED_PACMAN = TILE_SIZE / 1;
+    public static final int SPEED_PACMAN = TILE_SIZE / 4;
     public static final int SPEED_PACMAN_SPRINT = SPEED_PACMAN * 2;
     public static final int SPEED_GHOST = TILE_SIZE / 3;
     public static final int SPEED_BOSS = TILE_SIZE / 3;

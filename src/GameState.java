@@ -5,11 +5,11 @@ import java.util.List;
 
 public class GameState {
     public int score = 0;
-    public int lives = 999;
+    public int lives = 3;
     public boolean gameOver = false;
     public boolean gameWon = false;
-    public int currentLevel = 3;
-    public int knifeCount = 999;
+    public int currentLevel = 1;
+    public int knifeCount = 0;
     public boolean hasWeapon = false;
     public Boss boss;
     public boolean bossState = true;
