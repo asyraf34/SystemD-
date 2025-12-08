@@ -11,7 +11,7 @@ public class AssetManager {
     private Image blueGhostImage, orangeGhostImage, pinkGhostImage, redGhostImage;
     private Image pacmanUpImage, pacmanDownImage, pacmanLeftImage, pacmanRightImage;
     private Image pacmanUpKnifeImage, pacmanDownKnifeImage, pacmanLeftKnifeImage, pacmanRightKnifeImage;
-    private Image knifeImage, foodImage;
+    private Image knifeImage, knifeHudImage, foodImage;
     private Image BossImage, BossReflectImage, ProjectileImage;
 
     // Scaled food dimensions
@@ -27,7 +27,7 @@ public class AssetManager {
 
     private void loadImages() {
         // 1. Load standard images using the helper method
-        backgroundImage       = loadImage("/background.png");
+        backgroundImage       = loadImage("/background.gif");
         wallImage             = loadImage("/wall.png");
 
         blueGhostImage        = loadImage("/blueGhost.png");
@@ -41,7 +41,7 @@ public class AssetManager {
         pacmanRightImage      = loadImage("/pacmanRight.png");
 
         knifeImage            = loadImage("/knife.png");
-
+        knifeHudImage         = loadImage("/knifeIcon.png");
         pacmanUpKnifeImage    = loadImage("/pacmanUp-with-knife.png");
         pacmanDownKnifeImage  = loadImage("/pacmanDown-with-knife.png");
         pacmanLeftKnifeImage  = loadImage("/pacmanLeft-with-knife.png");
@@ -58,8 +58,15 @@ public class AssetManager {
         foodHeight = foodIcon.getIconHeight();
     }
 
-    private Image loadImage(String path) {
-        return new ImageIcon(Objects.requireNonNull(getClass().getResource(path))).getImage();
+    private Image loadImage(String... paths) {
+        for (String path : paths) {
+            java.net.URL resourceUrl = getClass().getResource(path);
+            if (resourceUrl != null) {
+                return new ImageIcon(resourceUrl).getImage();
+            }
+        }
+
+        throw new IllegalArgumentException("Could not load image from paths: " + String.join(", ", paths));
     }
 
     private void scaleFoodImage(int tileSize) {
@@ -92,6 +99,7 @@ public class AssetManager {
     public Image getPacmanRightImage() { return pacmanRightImage; }
     public Image getFoodImage() { return foodImage; }
     public Image getKnifeImage() { return knifeImage; }
+    public Image getKnifeHudImage() { return knifeHudImage; }
     public Image getPacmanUpKnifeImage() { return pacmanUpKnifeImage; }
     public Image getPacmanDownKnifeImage() { return pacmanDownKnifeImage; }
     public Image getPacmanLeftKnifeImage() { return pacmanLeftKnifeImage; }

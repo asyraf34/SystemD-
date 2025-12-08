@@ -12,6 +12,7 @@ public class GameState {
     public int knifeCount = 0;
     public boolean hasWeapon = false;
     public Boss boss;
+    public boolean bossState = true;
 
     // Sprint State
     public boolean sprintActive = false;
@@ -36,4 +37,11 @@ public class GameState {
     public int restartDebounceTicks = 0;
 
     public List<DeathAnimation> animations = new ArrayList<>();
+
+    //false = no kill route
+    //true = kill route
+    public boolean route = false;
+    public boolean ghostKill = false; //check ghost kill
+    public boolean gameEndProcessed = false;
+
 }

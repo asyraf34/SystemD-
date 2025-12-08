@@ -9,6 +9,7 @@ public class CollisionManager {
     public static final int GHOST_COLLISION_GHOST_KILLED = 2;
     private static final Logger LOGGER = Logger.getLogger(CollisionManager.class.getSimpleName());
 
+    public int ghostKilled = 0;
     // --- 1. Simple Collisions (Food & Knife) ---
 
     public void checkFoodCollisions(GameState state, SoundManager soundManager) {
@@ -46,7 +47,11 @@ public class CollisionManager {
                 LOGGER.info( "hasWeapon = " + state.hasWeapon + ", " + "police collides with mafia = " + state.pacman.collidesWith(ghost));
                 // CASE A: Pac-Man has weapon -> Kill Ghost
                 if (state.hasWeapon && state.knifeCount > 0) {
-                    LOGGER.info( "hasWeapon = " + state.hasWeapon + ", " + "police collides with mafia = " + state.pacman.collidesWith(ghost));
+                    ghostKilled++;
+                    LOGGER.info( "hasWeapon = " + state.hasWeapon + ", " + "police collides with mafia = "
+                            + state.pacman.collidesWith(ghost) + ", police killed = " + ghostKilled);
+                    state.ghostKill = true;
+                    System.out.println(state.ghostKill);
                     consumeWeapon(state);
                     LOGGER.info("Score before = " + state.score);
                     state.score += 100;
@@ -84,6 +89,7 @@ public class CollisionManager {
 
         // 2. Boss is Vulnerable -> Boss takes damage (Knife IS consumed)
         consumeWeapon(state);
+        soundManager.playEffect("audio/kill.wav");
 
         triggerBossDamageAnimation(state, state.boss);
 
@@ -94,6 +100,7 @@ public class CollisionManager {
             triggerDeathAnimation(state, state.boss, "1000");
             LOGGER.info("Mafia killed the boss +1000 points. " + "Score after = " + state.score);
             state.boss = null; // Boss defeated
+            state.bossState = false; // Boss dead
         }
         state.pacman.reset();
 
@@ -144,9 +151,7 @@ public class CollisionManager {
 
     private void triggerBossDamageAnimation(GameState state, Boss boss) {
         try {
-            state.animations.add(new DeathAnimation(
-                    boss.image, boss.x, boss.y, boss.width, boss.height, 30, "-1", Color.yellow
-            ));
+            state.animations.add(new DeathAnimation(boss.image, boss.x, boss.y, boss.width, boss.height, 30, "-1", Color.yellow));
         } catch (Exception e) {
             // Ignore animation errors
         }

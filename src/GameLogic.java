@@ -1,3 +1,4 @@
+import java.io.IOException;
 import java.util.List;
 
 public class GameLogic {
@@ -96,6 +97,9 @@ public class GameLogic {
             state.nextLevelToStart = state.currentLevel + 1;
             if (state.nextLevelToStart > gameMap.getLevelCount()) {
                 state.gameWon = true;
+
+                state.route = state.ghostKill;
+
                 inputHandler.clear();
                 state.restartDebounceTicks = GameConstants.TIMER_RESTART;
             } else {
@@ -135,7 +139,9 @@ public class GameLogic {
     private void endSprintWithCooldown() {
         state.sprintActive = false;
         state.sprintTicksRemaining = 0;
-        state.sprintCooldownTicks = GameConstants.TIMER_SPRINT_COOLDOWN;
+        // Use mode-aware cooldown so Demo mode gets a shorter cooldown
+        GameMode currentMode = ModeManager.getSelectedMode();
+        state.sprintCooldownTicks = GameConstants.sprintCooldown(currentMode);
         state.pacman.speed = GameConstants.SPEED_PACMAN;
     }
 
