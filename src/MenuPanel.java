@@ -31,6 +31,8 @@ public class MenuPanel extends JPanel implements ActionListener {
     private final Runnable startGameCallback;
 
     Font customFont;
+    private Image backgroundImage;
+
 
     // slider UI
     private final JSlider volumeSlider;
@@ -50,7 +52,13 @@ public class MenuPanel extends JPanel implements ActionListener {
         // use BorderLayout so we can put the slider at the top (NORTH)
         setLayout(new BorderLayout());
 
-        try (InputStream is = getClass().getResourceAsStream("/04B_03__.ttf")) {
+        // load menu background image
+        java.net.URL bgUrl = getClass().getResource("/menuBackground.gif");
+        if (bgUrl != null) {
+            backgroundImage = new ImageIcon(bgUrl).getImage();
+        }
+
+        try (InputStream is = getClass().getResourceAsStream("/font_B.ttf")) {
             if (is != null) {
                 customFont = Font.createFont(Font.TRUETYPE_FONT, is);
             } else {
@@ -116,7 +124,7 @@ public class MenuPanel extends JPanel implements ActionListener {
 
         // percentage label (0% .. 100%) shown to the right of the volume icon
         percentLabel = new JLabel(initial + "%");
-        percentLabel.setForeground(new Color(207, 10, 10)); // yellow to match track
+        percentLabel.setForeground(new Color(165, 62, 26)); // yellow to match track
         percentLabel.setFont(customFont.deriveFont(Font.BOLD, 14f));
         percentLabel.setBorder(BorderFactory.createEmptyBorder(0, 6, 0, 0));
 
@@ -174,22 +182,73 @@ public class MenuPanel extends JPanel implements ActionListener {
             }
         });
 
-        // Add center controls: Play / Demo buttons
-        JPanel centerControls = new JPanel(new FlowLayout(FlowLayout.CENTER, 16, 8));
+// Add center controls: Play / Demo buttons
+        JPanel centerControls = new JPanel(new FlowLayout(FlowLayout.CENTER, 12, 10));
         centerControls.setOpaque(false);
 
-        JButton playBtn = new JButton("Play");
-        playBtn.setFont(customFont.deriveFont(Font.BOLD, 20f));
+        Color accentRed = new Color(255, 244, 240);
+        JButton playBtn = createMenuButton("Play", accentRed);
         playBtn.addActionListener(e -> startGame(GameMode.PLAY));
 
-        JButton demoBtn = new JButton("Demo");
-        demoBtn.setFont(customFont.deriveFont(Font.BOLD, 20f));
+        JButton demoBtn = createMenuButton("Demo", accentRed);
         demoBtn.addActionListener(e -> startGame(GameMode.DEMO));
 
         centerControls.add(playBtn);
         centerControls.add(demoBtn);
 
         add(centerControls, BorderLayout.CENTER);
+    }
+
+    private JButton createMenuButton(String text, Color accent) {
+        return new JButton(text) {
+            private boolean hover;
+
+            {
+                setFont(customFont.deriveFont(Font.BOLD, 19f));
+                setForeground(accent);
+                setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+                setOpaque(false);
+                setContentAreaFilled(false);
+                setBorderPainted(false);
+                setFocusPainted(false);
+                setPreferredSize(new Dimension(142, 44));
+                setMargin(new Insets(6, 12, 6, 12));
+
+                addMouseListener(new MouseAdapter() {
+                    @Override
+                    public void mouseEntered(MouseEvent e) {
+                        hover = true;
+                        repaint();
+                    }
+
+                    @Override
+                    public void mouseExited(MouseEvent e) {
+                        hover = false;
+                        repaint();
+                    }
+                });
+            }
+
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+                Color fill = new Color(accent.getRed(), accent.getGreen(), accent.getBlue(), hover ? 40 : 18);
+                Color stroke = new Color(accent.getRed(), accent.getGreen(), accent.getBlue(), hover ? 220 : 170);
+
+                g2.setColor(fill);
+                g2.fillRoundRect(1, 1, getWidth() - 2, getHeight() - 2, 16, 16);
+
+                g2.setStroke(new BasicStroke(2f));
+                g2.setColor(stroke);
+                g2.drawRoundRect(3, 3, getWidth() - 7, getHeight() - 7, 14, 14);
+
+                g2.dispose();
+
+                super.paintComponent(g);
+            }
+        };
     }
 
     private void startGame(GameMode mode) {
@@ -208,8 +267,12 @@ public class MenuPanel extends JPanel implements ActionListener {
         Graphics2D g2 = (Graphics2D) g;
         g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
 
-        // Title
-        g2.setColor(Color.YELLOW);
+        if (backgroundImage != null) {
+            g2.drawImage(backgroundImage, 0, 0, getWidth(), getHeight(), this);
+        }
+
+        // Title␊
+        g2.setColor(new Color(165, 62, 26));
         g2.setFont(customFont.deriveFont(Font.BOLD, 72));
         String title = "MAN-HUNT";
         int titleWidth = g2.getFontMetrics().stringWidth(title);
@@ -227,14 +290,14 @@ public class MenuPanel extends JPanel implements ActionListener {
 
         // Instructions
         g2.setFont(customFont.deriveFont(Font.PLAIN, 20));
-        g2.setColor(Color.GRAY);
+        g2.setColor(new Color(255, 244, 240));
         String escMsg = "Press ESC to Exit";
         int escWidth = g2.getFontMetrics().stringWidth(escMsg);
         g2.drawString(escMsg, (getWidth() - escWidth) / 2, 400 + deltaY);
 
-        // Pause hint
+        // Pause hint␊
         g2.setFont(customFont.deriveFont(Font.PLAIN, 20));
-        g2.setColor(Color.GRAY);
+        g2.setColor(new Color(255, 244, 240));
         String pauseMsg = "Press P to Pause";
         int pauseWidth = g2.getFontMetrics().stringWidth(pauseMsg);
         g2.drawString(pauseMsg, (getWidth() - pauseWidth) / 2, 430 + deltaY);
@@ -251,7 +314,7 @@ public class MenuPanel extends JPanel implements ActionListener {
      * Thumb painting is delegated to the superclass.
      */
     private static class YellowTrackSliderUI extends BasicSliderUI {
-        private static final Color TRACK_COLOR = new Color(207, 10, 10); // yellow (golden)
+        private static final Color TRACK_COLOR = new Color(165, 62, 26); //
         private static final Stroke TRACK_STROKE = new BasicStroke(6f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND);
 
         public YellowTrackSliderUI(JSlider b) {

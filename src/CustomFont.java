@@ -5,7 +5,7 @@ import java.io.InputStream;
 public class CustomFont {
     private Font customFont;
     CustomFont(int style, int size) {
-        InputStream is = getClass().getResourceAsStream("/04B_03__.ttf");
+        InputStream is = getClass().getResourceAsStream("/font_A.ttf");
         try{
             this.customFont = Font.createFont(Font.TRUETYPE_FONT, is).deriveFont(style, size);
         }catch(FontFormatException e){

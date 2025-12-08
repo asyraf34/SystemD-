@@ -209,7 +209,7 @@ public class Renderer {
         }
 
         // Knives
-        Image knifeIcon = assetManager.getKnifeImage();
+        Image knifeIcon = assetManager.getKnifeHudImage();
         int kCount = Math.max(0, state.knifeCount);
         int kx = boardWidth - pad - iconH;
         for (int i = 0; i < kCount; i++) {
