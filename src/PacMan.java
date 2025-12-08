@@ -212,9 +212,12 @@ public class PacMan extends JPanel {
             int index = random.nextInt(foodArray.length);
             Entity chosenFood = foodArray[index];
             if (state.foods.contains(chosenFood)) {
-                int knifeX = chosenFood.x + (chosenFood.width - (GameConstants.TILE_SIZE / 2)) / 2;
-                int knifeY = chosenFood.y + (chosenFood.height - (GameConstants.TILE_SIZE / 2)) / 2;
-                state.knives.add(new Entity(assetManager.getKnifeImage(), knifeX, knifeY, GameConstants.TILE_SIZE / 2, GameConstants.TILE_SIZE / 2));
+                int knifeSize = Math.max(1, (int) Math.round(GameConstants.TILE_SIZE * 0.7));
+                int tileX = chosenFood.x - (GameConstants.TILE_SIZE - assetManager.getFoodWidth()) / 2;
+                int tileY = chosenFood.y - (GameConstants.TILE_SIZE - assetManager.getFoodHeight()) / 2;
+                int knifeX = tileX + (GameConstants.TILE_SIZE - knifeSize) / 2;
+                int knifeY = tileY + (GameConstants.TILE_SIZE - knifeSize) / 2;
+                state.knives.add(new Entity(assetManager.getKnifeImage(), knifeX, knifeY, knifeSize, knifeSize));
                 state.foods.remove(chosenFood);
                 created++;
             }
